@@ -20,6 +20,10 @@ import {
   findPathAStar,
   isPointBlocked,
 } from "@/features/map/lib/pathfinding"
+import {
+  observeThemeClassChange,
+  resolveMapThemePalette,
+} from "@/features/map/render/map-theme"
 import { selectSpawnPoint } from "@/features/map/lib/spawn"
 import type {
   MapNode,
@@ -158,6 +162,8 @@ export async function createPixiMapScene({
   let resizeObserver: ResizeObserver | null = null
   let wheelHandler: ((event: WheelEvent) => void) | null = null
   let contextMenuHandler: ((event: MouseEvent) => void) | null = null
+  let stopThemeObserver: (() => void) | null = null
+  let mapTheme = resolveMapThemePalette()
 
   const showTooltip = (name: string, kind: MapNodeKind, x: number, y: number) => {
     const width = app.renderer.width
@@ -170,23 +176,23 @@ export async function createPixiMapScene({
 
   const drawBackground = () => {
     backgroundLayer.clear()
-    backgroundLayer.rect(0, 0, world.width, world.height).fill({ color: 0x0e1218 })
+    backgroundLayer.rect(0, 0, world.width, world.height).fill({ color: mapTheme.background })
     backgroundLayer
       .rect(0, 0, world.width, world.height)
-      .stroke({ width: 2, color: 0x2f3d49, alpha: 0.9 })
+      .stroke({ width: 2, color: mapTheme.grid, alpha: 0.9 })
 
     for (let x = 0; x <= world.width; x += 200) {
       backgroundLayer
         .moveTo(x, 0)
         .lineTo(x, world.height)
-        .stroke({ width: 1, color: 0x2a3844, alpha: 0.36 })
+        .stroke({ width: 1, color: mapTheme.grid, alpha: 0.22 })
     }
 
     for (let y = 0; y <= world.height; y += 200) {
       backgroundLayer
         .moveTo(0, y)
         .lineTo(world.width, y)
-        .stroke({ width: 1, color: 0x2a3844, alpha: 0.36 })
+        .stroke({ width: 1, color: mapTheme.grid, alpha: 0.22 })
     }
   }
 
@@ -479,6 +485,14 @@ export async function createPixiMapScene({
 
   app.canvas.addEventListener("wheel", wheelHandler, { passive: false })
   app.canvas.addEventListener("contextmenu", contextMenuHandler)
+  stopThemeObserver = observeThemeClassChange(() => {
+    if (destroyed) {
+      return
+    }
+
+    mapTheme = resolveMapThemePalette()
+    drawBackground()
+  })
 
   resizeObserver = new ResizeObserver(() => {
     resize()
@@ -514,6 +528,7 @@ export async function createPixiMapScene({
         app.canvas.removeEventListener("contextmenu", contextMenuHandler)
       }
 
+      stopThemeObserver?.()
       callbacks.onTooltipChange(null)
       app.destroy(true, { children: true })
     },

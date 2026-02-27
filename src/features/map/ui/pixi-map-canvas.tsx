@@ -32,28 +32,26 @@ export function PixiMapCanvas({
     <div
       ref={hostRef}
       className={cn(
-        "relative w-full touch-none overflow-hidden rounded-md border border-white/10 bg-[#0b0f14] select-none",
+        "relative w-full touch-none overflow-hidden rounded-md border border-white/10 bg-background select-none",
         className
       )}
     >
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-20 bg-gradient-to-t from-black/35 to-transparent" />
-      <div className="absolute top-3 right-3 z-20 flex items-center gap-2 rounded-md border border-white/15 bg-[#141920]/90 px-2 py-1">
+      <div className="absolute top-3 right-3 z-20 flex items-center gap-2 rounded-md border border-border bg-card/90 px-2 py-1">
         <Button
           size="icon-xs"
           variant="outline"
-          className="border-white/15 bg-black/20 text-slate-200 hover:bg-black/35"
           onClick={zoomOut}
           aria-label="缩小地图"
         >
           <Minus />
         </Button>
-        <span className="w-12 text-center text-[11px] font-medium tracking-wide text-slate-200">
+        <span className="text-foreground w-12 text-center text-[11px] font-medium tracking-wide">
           {zoomPercent}%
         </span>
         <Button
           size="icon-xs"
           variant="outline"
-          className="border-white/15 bg-black/20 text-slate-200 hover:bg-black/35"
           onClick={zoomIn}
           aria-label="放大地图"
         >

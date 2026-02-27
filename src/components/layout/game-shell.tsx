@@ -25,6 +25,7 @@ const navTitleMap: Record<NavKey, string> = {
 
 export function GameShell() {
   const [activeNav, setActiveNav] = useState<NavKey>("map")
+  const isMapPage = activeNav === "map"
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -33,15 +34,17 @@ export function GameShell() {
         activeNav={activeNav}
         onChange={setActiveNav}
       />
-      <main className="ml-14 min-h-screen p-4 md:p-6">
-        <header className="mb-6 flex items-center justify-between border-b pb-3">
-          <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-            Wasteland Control
-          </p>
-          <p className="text-xs text-muted-foreground">
-            当前面板: {navTitleMap[activeNav]}
-          </p>
-        </header>
+      <main className={isMapPage ? "ml-14 h-screen overflow-hidden p-0" : "ml-14 min-h-screen p-4 md:p-6"}>
+        {isMapPage ? null : (
+          <header className="mb-6 flex items-center justify-between border-b pb-3">
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              Wasteland Control
+            </p>
+            <p className="text-xs text-muted-foreground">
+              当前面板: {navTitleMap[activeNav]}
+            </p>
+          </header>
+        )}
         <ActivePanel activeNav={activeNav} />
       </main>
     </div>

@@ -49,9 +49,12 @@ describe("PixiMapCanvas UI", () => {
   it("renders zoom percent and invokes zoom actions", () => {
     setupControllerState({ zoomPercent: 62 })
 
-    render(<PixiMapCanvas world={world} nodes={nodes} obstacles={obstacles} />)
+    const { container } = render(<PixiMapCanvas world={world} nodes={nodes} obstacles={obstacles} />)
+    const host = container.firstElementChild as HTMLElement
 
     expect(screen.getByText("62%")).toBeTruthy()
+    expect(host.className).toContain("bg-background")
+    expect(host.className).not.toContain("bg-[#0b0f14]")
 
     fireEvent.click(screen.getByLabelText("放大地图"))
     fireEvent.click(screen.getByLabelText("缩小地图"))
