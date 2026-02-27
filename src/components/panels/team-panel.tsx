@@ -1,28 +1,15 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { useMemo } from "react"
+
+import { CharacterRoster } from "@/components/panels/character-roster"
 import { PanelShell } from "@/components/panels/panel-shell"
+import { getCharacters } from "@/features/character/data/characters"
 
 export function TeamPanel() {
+  const characters = useMemo(() => getCharacters(), [])
+
   return (
-    <PanelShell title="队伍" description="管理角色编组、状态和战术分工。">
-      <Card size="sm">
-        <CardHeader>
-          <CardTitle>编队状态</CardTitle>
-          <CardDescription>
-            后续可展示成员属性、装备槽、行动值和疲劳度。
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            当前为队伍占位面板，等待角色系统接入。
-          </p>
-        </CardContent>
-      </Card>
+    <PanelShell title="队伍" description="查看队伍成员的基础信息与作战能力。">
+      <CharacterRoster characters={characters} />
     </PanelShell>
   )
 }
