@@ -1,6 +1,7 @@
 import { useState } from "react"
 
 import { SidebarNav } from "@/components/layout/sidebar-nav"
+import { TopTimeBar } from "@/components/layout/top-time-bar"
 import { BasePanel } from "@/components/panels/base-panel"
 import { BattlePanel } from "@/components/panels/battle-panel"
 import { EventsPanel } from "@/components/panels/events-panel"
@@ -34,18 +35,21 @@ export function GameShell() {
         activeNav={activeNav}
         onChange={setActiveNav}
       />
-      <main className={isMapPage ? "ml-14 h-screen overflow-hidden p-0" : "ml-14 min-h-screen p-4 md:p-6"}>
-        {isMapPage ? null : (
-          <header className="mb-6 flex items-center justify-between border-b pb-3">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Wasteland Control
-            </p>
-            <p className="text-xs text-muted-foreground">
-              当前面板: {navTitleMap[activeNav]}
-            </p>
-          </header>
-        )}
-        <ActivePanel activeNav={activeNav} />
+      <main className={isMapPage ? "ml-14 flex h-screen flex-col overflow-hidden" : "ml-14 flex min-h-screen flex-col"}>
+        <TopTimeBar />
+        <div className={isMapPage ? "min-h-0 flex-1" : "min-h-0 flex-1 p-4 md:p-6"}>
+          {isMapPage ? null : (
+            <header className="mb-6 flex items-center justify-between border-b pb-3">
+              <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                Wasteland Control
+              </p>
+              <p className="text-xs text-muted-foreground">
+                当前面板: {navTitleMap[activeNav]}
+              </p>
+            </header>
+          )}
+          <ActivePanel activeNav={activeNav} />
+        </div>
       </main>
     </div>
   )
