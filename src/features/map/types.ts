@@ -1,3 +1,5 @@
+import type { Character } from "@/features/character/types"
+
 export type MapNodeKind = "settlement" | "ruin" | "outpost" | "hazard"
 
 export type WorldPoint = {
@@ -26,4 +28,20 @@ export type MapObstacle = {
   id: string
   name: string
   polygon: WorldPoint[]
+}
+
+export type NpcSquadTemplate = {
+  id: string
+  name: string
+  members: Character[]
+  spawn: WorldPoint
+  speed: number
+}
+
+export type NpcSquadSnapshot = {
+  id: string
+  name: string
+  members: Character[]
+  position: WorldPoint
+  moving: boolean
 }

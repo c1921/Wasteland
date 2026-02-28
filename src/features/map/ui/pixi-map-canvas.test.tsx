@@ -3,7 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { PixiMapCanvas } from "@/features/map/ui/pixi-map-canvas"
 import type { MapTooltipState } from "@/features/map/render/pixi-scene"
-import type { MapNode, MapObstacle, WorldConfig } from "@/features/map/types"
+import type {
+  MapNode,
+  MapObstacle,
+  NpcSquadSnapshot,
+  NpcSquadTemplate,
+  WorldConfig,
+} from "@/features/map/types"
 
 const useMapControllerMock = vi.fn()
 const useGameClockMock = vi.fn()
@@ -29,6 +35,15 @@ const world: WorldConfig = {
 
 const nodes: MapNode[] = []
 const obstacles: MapObstacle[] = []
+const npcSquads: NpcSquadTemplate[] = [
+  {
+    id: "npc-squad-1",
+    name: "灰狼巡逻组-1",
+    members: [],
+    spawn: { x: 10, y: 10 },
+    speed: 130,
+  },
+]
 
 function setupControllerState(overrides?: {
   zoomPercent?: number
@@ -79,18 +94,23 @@ describe("PixiMapCanvas UI", () => {
   it("forwards node selection callback to controller", () => {
     setupControllerState()
     const onNodeSelect = vi.fn()
+    const onSquadSelect = vi.fn<(squad: NpcSquadSnapshot) => void>()
 
     render(
       <PixiMapCanvas
         world={world}
         nodes={nodes}
         obstacles={obstacles}
+        npcSquads={npcSquads}
         onNodeSelect={onNodeSelect}
+        onSquadSelect={onSquadSelect}
       />
     )
 
     expect(useMapControllerMock).toHaveBeenCalledTimes(1)
     expect(useMapControllerMock.mock.calls[0][0].onNodeSelect).toBe(onNodeSelect)
+    expect(useMapControllerMock.mock.calls[0][0].onSquadSelect).toBe(onSquadSelect)
+    expect(useMapControllerMock.mock.calls[0][0].npcSquads).toBe(npcSquads)
     expect(useMapControllerMock.mock.calls[0][0].movementTimeScale).toBe(10)
   })
 
@@ -102,11 +122,11 @@ describe("PixiMapCanvas UI", () => {
     expect(screen.getByText("目标不可达：未找到有效路径")).toBeTruthy()
   })
 
-  it("shows tooltip with translated node kind label", () => {
+  it("shows tooltip subtitle", () => {
     setupControllerState({
       tooltip: {
         name: "灰烬中枢",
-        kind: "settlement",
+        subtitle: "聚落",
         left: 20,
         top: 20,
       },

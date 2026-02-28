@@ -8,6 +8,10 @@ import {
 } from "pixi.js"
 
 import {
+  NODE_KIND_LABEL,
+  NPC_SQUAD_IDLE_MAX_MS,
+  NPC_SQUAD_IDLE_MIN_MS,
+  NPC_SQUAD_PATHFIND_ATTEMPTS,
   NODE_STYLE_MAP,
   PLAYER_SPEED,
   TOOLTIP_HEIGHT,
@@ -15,6 +19,12 @@ import {
   ZOOM_STEP,
 } from "@/features/map/constants"
 import { clamp } from "@/features/map/lib/math"
+import {
+  createNpcSquadRuntimes,
+  tickNpcSquad,
+  toNpcSquadSnapshot,
+  type NpcSquadRuntime,
+} from "@/features/map/lib/npc-squads"
 import {
   buildNavigationGrid,
   findPathAStar,
@@ -28,8 +38,9 @@ import {
 import { selectSpawnPoint } from "@/features/map/lib/spawn"
 import type {
   MapNode,
-  MapNodeKind,
   MapObstacle,
+  NpcSquadSnapshot,
+  NpcSquadTemplate,
   WorldConfig,
   WorldPoint,
 } from "@/features/map/types"
@@ -50,7 +61,7 @@ type DragState = {
 
 export type MapTooltipState = {
   name: string
-  kind: MapNodeKind
+  subtitle: string
   left: number
   top: number
 }
@@ -60,6 +71,7 @@ type SceneCallbacks = {
   onStatusMessage: (message: string) => void
   onZoomPercentChange: (zoomPercent: number) => void
   onNodeSelect: (nodeId: string) => void
+  onSquadSelect: (squad: NpcSquadSnapshot) => void
 }
 
 type CreatePixiMapSceneParams = {
@@ -67,6 +79,7 @@ type CreatePixiMapSceneParams = {
   world: WorldConfig
   nodes: MapNode[]
   obstacles: MapObstacle[]
+  npcSquads?: NpcSquadTemplate[]
   callbacks: SceneCallbacks
   movementTimeScale?: number
 }
@@ -130,6 +143,7 @@ export async function createPixiMapScene({
   world,
   nodes,
   obstacles,
+  npcSquads = [],
   callbacks,
   movementTimeScale: initialMovementTimeScale = 1,
 }: CreatePixiMapSceneParams): Promise<MapSceneController> {
@@ -139,10 +153,13 @@ export async function createPixiMapScene({
   const obstacleLayer = new Graphics()
   const pathLayer = new Graphics()
   const nodeLayer = new Container()
+  const npcLayer = new Container()
   const playerLayer = new Container()
   const playerMarker = new Graphics()
   const navigationGrid = buildNavigationGrid(world, obstacles)
   const spawn = selectSpawnPoint(navigationGrid, nodes, world)
+  const npcSquadRuntimes = createNpcSquadRuntimes(npcSquads)
+  const npcMarkers = new Map<string, Graphics>()
   const drag: DragState = {
     active: false,
     startX: 0,
@@ -173,13 +190,13 @@ export async function createPixiMapScene({
   let stopThemeObserver: (() => void) | null = null
   let mapTheme = resolveMapThemePalette()
 
-  const showTooltip = (name: string, kind: MapNodeKind, x: number, y: number) => {
+  const showTooltip = (name: string, subtitle: string, x: number, y: number) => {
     const width = app.renderer.width
     const height = app.renderer.height
     const left = clamp(x + 12, 8, Math.max(8, width - TOOLTIP_WIDTH - 8))
     const top = clamp(y - TOOLTIP_HEIGHT - 8, 8, Math.max(8, height - TOOLTIP_HEIGHT - 8))
 
-    callbacks.onTooltipChange({ name, kind, left, top })
+    callbacks.onTooltipChange({ name, subtitle, left, top })
   }
 
   const drawBackground = () => {
@@ -288,7 +305,7 @@ export async function createPixiMapScene({
       marker.hitArea = new Circle(0, 0, 17)
 
       const updateTooltipPosition = (event: FederatedPointerEvent) => {
-        showTooltip(node.name, node.kind, event.global.x, event.global.y)
+        showTooltip(node.name, NODE_KIND_LABEL[node.kind], event.global.x, event.global.y)
       }
 
       marker.on("pointerover", updateTooltipPosition)
@@ -305,6 +322,58 @@ export async function createPixiMapScene({
       })
 
       nodeLayer.addChild(marker)
+    }
+  }
+
+  const drawNpcSquads = () => {
+    const staleMarkers = npcLayer.removeChildren()
+
+    for (const stale of staleMarkers) {
+      stale.destroy()
+    }
+
+    npcMarkers.clear()
+
+    for (const squad of npcSquadRuntimes) {
+      const marker = new Graphics()
+
+      marker
+        .circle(0, 0, 14)
+        .fill({ color: 0x95d29f, alpha: 0.12 })
+        .circle(0, 0, 8)
+        .stroke({ width: 1.8, color: 0x9fdfa9, alpha: 0.92 })
+        .circle(0, 0, 3.8)
+        .fill({ color: 0xe9f9ec, alpha: 1 })
+
+      marker.position.set(squad.mover.x, squad.mover.y)
+      marker.eventMode = "static"
+      marker.cursor = "pointer"
+      marker.hitArea = new Circle(0, 0, 15)
+
+      const updateTooltipPosition = (event: FederatedPointerEvent) => {
+        showTooltip(
+          squad.name,
+          `${squad.members.length}名NPC`,
+          event.global.x,
+          event.global.y
+        )
+      }
+
+      marker.on("pointerover", updateTooltipPosition)
+      marker.on("pointermove", updateTooltipPosition)
+      marker.on("pointerout", () => {
+        callbacks.onTooltipChange(null)
+      })
+      marker.on("pointerdown", (event: FederatedPointerEvent) => {
+        event.stopPropagation()
+      })
+      marker.on("pointertap", (event: FederatedPointerEvent) => {
+        event.stopPropagation()
+        callbacks.onSquadSelect(toNpcSquadSnapshot(squad))
+      })
+
+      npcLayer.addChild(marker)
+      npcMarkers.set(squad.id, marker)
     }
   }
 
@@ -401,27 +470,48 @@ export async function createPixiMapScene({
     drag.active = false
   }
 
+  const updateNpcMarkerPosition = (squad: NpcSquadRuntime) => {
+    const marker = npcMarkers.get(squad.id)
+
+    if (!marker) {
+      return
+    }
+
+    marker.position.set(squad.mover.x, squad.mover.y)
+  }
+
   const tick = () => {
-    const { moved, arrived } = advancePathMover(
+    const playerStep = advancePathMover(
       player,
       app.ticker.deltaMS,
       movementTimeScale
     )
 
-    if (!moved && !arrived) {
-      return
-    }
-
-    if (moved) {
+    if (playerStep.moved) {
       playerMarker.position.set(player.x, player.y)
+      drawPath([{ x: player.x, y: player.y }, ...player.path])
     }
 
-    if (arrived) {
+    if (playerStep.arrived) {
       drawPath([])
-      return
     }
 
-    drawPath([{ x: player.x, y: player.y }, ...player.path])
+    for (const squad of npcSquadRuntimes) {
+      const step = tickNpcSquad({
+        squad,
+        deltaMs: app.ticker.deltaMS,
+        timeScale: movementTimeScale,
+        navigationGrid,
+        world,
+        pathfindAttempts: NPC_SQUAD_PATHFIND_ATTEMPTS,
+        idleMinMs: NPC_SQUAD_IDLE_MIN_MS,
+        idleMaxMs: NPC_SQUAD_IDLE_MAX_MS,
+      })
+
+      if (step.moved) {
+        updateNpcMarkerPosition(squad)
+      }
+    }
   }
 
   const resize = () => {
@@ -454,6 +544,7 @@ export async function createPixiMapScene({
   worldContainer.addChild(obstacleLayer)
   worldContainer.addChild(pathLayer)
   worldContainer.addChild(nodeLayer)
+  worldContainer.addChild(npcLayer)
   worldContainer.addChild(playerLayer)
   playerLayer.addChild(playerMarker)
   app.stage.addChild(worldContainer)
@@ -461,6 +552,7 @@ export async function createPixiMapScene({
   drawBackground()
   drawObstacles()
   drawNodes()
+  drawNpcSquads()
   drawPlayerMarker()
   centerCamera()
 

@@ -5,15 +5,23 @@ import {
   type MapSceneController,
   type MapTooltipState,
 } from "@/features/map/render/pixi-scene"
-import type { MapNode, MapObstacle, WorldConfig } from "@/features/map/types"
+import type {
+  MapNode,
+  MapObstacle,
+  NpcSquadSnapshot,
+  NpcSquadTemplate,
+  WorldConfig,
+} from "@/features/map/types"
 
 type UseMapControllerParams = {
   hostRef: RefObject<HTMLDivElement | null>
   world: WorldConfig
   nodes: MapNode[]
   obstacles: MapObstacle[]
+  npcSquads?: NpcSquadTemplate[]
   movementTimeScale: number
   onNodeSelect?: (nodeId: string) => void
+  onSquadSelect?: (squad: NpcSquadSnapshot) => void
 }
 
 const STATUS_DURATION_MS = 1800
@@ -23,12 +31,15 @@ export function useMapController({
   world,
   nodes,
   obstacles,
+  npcSquads,
   movementTimeScale,
   onNodeSelect,
+  onSquadSelect,
 }: UseMapControllerParams) {
   const sceneRef = useRef<MapSceneController | null>(null)
   const statusTimerRef = useRef<number | null>(null)
   const onNodeSelectRef = useRef<typeof onNodeSelect>(onNodeSelect)
+  const onSquadSelectRef = useRef<typeof onSquadSelect>(onSquadSelect)
   const movementTimeScaleRef = useRef(movementTimeScale)
   const [tooltip, setTooltip] = useState<MapTooltipState | null>(null)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -39,6 +50,10 @@ export function useMapController({
   useEffect(() => {
     onNodeSelectRef.current = onNodeSelect
   }, [onNodeSelect])
+
+  useEffect(() => {
+    onSquadSelectRef.current = onSquadSelect
+  }, [onSquadSelect])
 
   useEffect(() => {
     movementTimeScaleRef.current = movementTimeScale
@@ -67,6 +82,7 @@ export function useMapController({
         world,
         nodes,
         obstacles,
+        npcSquads,
         movementTimeScale: movementTimeScaleRef.current,
         callbacks: {
           onTooltipChange: (nextTooltip) => {
@@ -97,6 +113,11 @@ export function useMapController({
               onNodeSelectRef.current?.(nodeId)
             }
           },
+          onSquadSelect: (squad) => {
+            if (!cancelled) {
+              onSquadSelectRef.current?.(squad)
+            }
+          },
         },
       })
 
@@ -122,7 +143,7 @@ export function useMapController({
       sceneRef.current = null
       scene?.destroy()
     }
-  }, [clearStatusTimer, hostRef, nodes, obstacles, world])
+  }, [clearStatusTimer, hostRef, nodes, npcSquads, obstacles, world])
 
   const zoomIn = useCallback(() => {
     sceneRef.current?.zoomIn()

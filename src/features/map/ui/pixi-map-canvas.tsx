@@ -1,9 +1,14 @@
 import { useRef } from "react"
 import { Minus, Plus } from "lucide-react"
 
-import { NODE_KIND_LABEL } from "@/features/map/constants"
 import { useMapController } from "@/features/map/hooks/use-map-controller"
-import type { MapNode, MapObstacle, WorldConfig } from "@/features/map/types"
+import type {
+  MapNode,
+  MapObstacle,
+  NpcSquadSnapshot,
+  NpcSquadTemplate,
+  WorldConfig,
+} from "@/features/map/types"
 import { useGameClock } from "@/features/time/game-clock-store"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -12,7 +17,9 @@ type PixiMapCanvasProps = {
   world: WorldConfig
   nodes: MapNode[]
   obstacles: MapObstacle[]
+  npcSquads?: NpcSquadTemplate[]
   onNodeSelect?: (nodeId: string) => void
+  onSquadSelect?: (squad: NpcSquadSnapshot) => void
   className?: string
 }
 
@@ -20,7 +27,9 @@ export function PixiMapCanvas({
   world,
   nodes,
   obstacles,
+  npcSquads,
   onNodeSelect,
+  onSquadSelect,
   className,
 }: PixiMapCanvasProps) {
   const hostRef = useRef<HTMLDivElement | null>(null)
@@ -30,8 +39,10 @@ export function PixiMapCanvas({
     world,
     nodes,
     obstacles,
+    npcSquads,
     movementTimeScale: speed,
     onNodeSelect,
+    onSquadSelect,
   })
 
   return (
@@ -79,7 +90,7 @@ export function PixiMapCanvas({
         >
           <p className="font-medium tracking-wide">{tooltip.name}</p>
           <p className="mt-1 text-[10px] uppercase tracking-[0.08em] text-[#99a4ad]">
-            {NODE_KIND_LABEL[tooltip.kind]}
+            {tooltip.subtitle}
           </p>
         </div>
       ) : null}
