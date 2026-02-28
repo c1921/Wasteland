@@ -12,6 +12,7 @@ type UseMapControllerParams = {
   world: WorldConfig
   nodes: MapNode[]
   obstacles: MapObstacle[]
+  movementTimeScale: number
   onNodeSelect?: (nodeId: string) => void
 }
 
@@ -22,11 +23,13 @@ export function useMapController({
   world,
   nodes,
   obstacles,
+  movementTimeScale,
   onNodeSelect,
 }: UseMapControllerParams) {
   const sceneRef = useRef<MapSceneController | null>(null)
   const statusTimerRef = useRef<number | null>(null)
   const onNodeSelectRef = useRef<typeof onNodeSelect>(onNodeSelect)
+  const movementTimeScaleRef = useRef(movementTimeScale)
   const [tooltip, setTooltip] = useState<MapTooltipState | null>(null)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [zoomPercent, setZoomPercent] = useState<number>(
@@ -36,6 +39,11 @@ export function useMapController({
   useEffect(() => {
     onNodeSelectRef.current = onNodeSelect
   }, [onNodeSelect])
+
+  useEffect(() => {
+    movementTimeScaleRef.current = movementTimeScale
+    sceneRef.current?.setMovementTimeScale(movementTimeScale)
+  }, [movementTimeScale])
 
   const clearStatusTimer = useCallback(() => {
     if (statusTimerRef.current !== null) {
@@ -59,6 +67,7 @@ export function useMapController({
         world,
         nodes,
         obstacles,
+        movementTimeScale: movementTimeScaleRef.current,
         callbacks: {
           onTooltipChange: (nextTooltip) => {
             if (!cancelled) {

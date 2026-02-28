@@ -6,11 +6,16 @@ import type { MapTooltipState } from "@/features/map/render/pixi-scene"
 import type { MapNode, MapObstacle, WorldConfig } from "@/features/map/types"
 
 const useMapControllerMock = vi.fn()
+const useGameClockMock = vi.fn()
 const zoomInMock = vi.fn()
 const zoomOutMock = vi.fn()
 
 vi.mock("@/features/map/hooks/use-map-controller", () => ({
   useMapController: (...args: unknown[]) => useMapControllerMock(...args),
+}))
+
+vi.mock("@/features/time/game-clock-store", () => ({
+  useGameClock: () => useGameClockMock(),
 }))
 
 const world: WorldConfig = {
@@ -39,11 +44,19 @@ function setupControllerState(overrides?: {
   })
 }
 
+function setupClockState(speed = 10) {
+  useGameClockMock.mockReturnValue({
+    speed,
+  })
+}
+
 describe("PixiMapCanvas UI", () => {
   beforeEach(() => {
     useMapControllerMock.mockReset()
+    useGameClockMock.mockReset()
     zoomInMock.mockReset()
     zoomOutMock.mockReset()
+    setupClockState(10)
   })
 
   it("renders zoom percent and invokes zoom actions", () => {
@@ -78,6 +91,7 @@ describe("PixiMapCanvas UI", () => {
 
     expect(useMapControllerMock).toHaveBeenCalledTimes(1)
     expect(useMapControllerMock.mock.calls[0][0].onNodeSelect).toBe(onNodeSelect)
+    expect(useMapControllerMock.mock.calls[0][0].movementTimeScale).toBe(10)
   })
 
   it("shows status message when present", () => {

@@ -4,6 +4,7 @@ import { Minus, Plus } from "lucide-react"
 import { NODE_KIND_LABEL } from "@/features/map/constants"
 import { useMapController } from "@/features/map/hooks/use-map-controller"
 import type { MapNode, MapObstacle, WorldConfig } from "@/features/map/types"
+import { useGameClock } from "@/features/time/game-clock-store"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -23,11 +24,13 @@ export function PixiMapCanvas({
   className,
 }: PixiMapCanvasProps) {
   const hostRef = useRef<HTMLDivElement | null>(null)
+  const { speed } = useGameClock()
   const { tooltip, statusMessage, zoomPercent, zoomIn, zoomOut } = useMapController({
     hostRef,
     world,
     nodes,
     obstacles,
+    movementTimeScale: speed,
     onNodeSelect,
   })
 

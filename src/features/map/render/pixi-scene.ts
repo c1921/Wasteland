@@ -20,6 +20,7 @@ import {
   findPathAStar,
   isPointBlocked,
 } from "@/features/map/lib/pathfinding"
+import { advancePathMover, type PathMover } from "@/features/map/lib/movement"
 import {
   observeThemeClassChange,
   resolveMapThemePalette,
@@ -67,11 +68,13 @@ type CreatePixiMapSceneParams = {
   nodes: MapNode[]
   obstacles: MapObstacle[]
   callbacks: SceneCallbacks
+  movementTimeScale?: number
 }
 
 export type MapSceneController = {
   zoomIn: () => void
   zoomOut: () => void
+  setMovementTimeScale: (nextScale: number) => void
   destroy: () => void
 }
 
@@ -128,6 +131,7 @@ export async function createPixiMapScene({
   nodes,
   obstacles,
   callbacks,
+  movementTimeScale: initialMovementTimeScale = 1,
 }: CreatePixiMapSceneParams): Promise<MapSceneController> {
   const app = new Application()
   const worldContainer = new Container()
@@ -151,13 +155,16 @@ export async function createPixiMapScene({
     y: 0,
     zoom: clamp(world.defaultZoom, world.minZoom, world.maxZoom),
   }
-  const player = {
+  const player: PathMover = {
     x: spawn.x,
     y: spawn.y,
     speed: PLAYER_SPEED,
     moving: false,
     path: [] as WorldPoint[],
   }
+  let movementTimeScale = Number.isFinite(initialMovementTimeScale)
+    ? Math.max(0, initialMovementTimeScale)
+    : 1
 
   let destroyed = false
   let resizeObserver: ResizeObserver | null = null
@@ -395,39 +402,26 @@ export async function createPixiMapScene({
   }
 
   const tick = () => {
-    if (!player.moving || player.path.length === 0) {
+    const { moved, arrived } = advancePathMover(
+      player,
+      app.ticker.deltaMS,
+      movementTimeScale
+    )
+
+    if (!moved && !arrived) {
       return
     }
 
-    let remaining = player.speed * (app.ticker.deltaMS / 1000)
-
-    while (remaining > 0 && player.path.length > 0) {
-      const nextPoint = player.path[0]
-      const dx = nextPoint.x - player.x
-      const dy = nextPoint.y - player.y
-      const distance = Math.hypot(dx, dy)
-
-      if (distance <= remaining) {
-        player.x = nextPoint.x
-        player.y = nextPoint.y
-        player.path.shift()
-        remaining -= distance
-      } else {
-        const ratio = remaining / Math.max(distance, 0.0001)
-        player.x += dx * ratio
-        player.y += dy * ratio
-        remaining = 0
-      }
+    if (moved) {
+      playerMarker.position.set(player.x, player.y)
     }
 
-    playerMarker.position.set(player.x, player.y)
-
-    if (player.path.length === 0) {
-      player.moving = false
+    if (arrived) {
       drawPath([])
-    } else {
-      drawPath([{ x: player.x, y: player.y }, ...player.path])
+      return
     }
+
+    drawPath([{ x: player.x, y: player.y }, ...player.path])
   }
 
   const resize = () => {
@@ -513,6 +507,9 @@ export async function createPixiMapScene({
     },
     zoomOut: () => {
       zoomAt(app.renderer.width / 2, app.renderer.height / 2, camera.zoom * (1 - ZOOM_STEP))
+    },
+    setMovementTimeScale: (nextScale: number) => {
+      movementTimeScale = Number.isFinite(nextScale) ? Math.max(0, nextScale) : 1
     },
     destroy: () => {
       if (destroyed) {
