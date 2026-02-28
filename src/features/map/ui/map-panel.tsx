@@ -9,9 +9,37 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { CharacterRoster } from "@/features/character/ui/character-roster"
+import { ITEM_CATEGORY_LABEL, type Item } from "@/features/items/types"
 import { NODE_KIND_LABEL } from "@/features/map/constants"
 import { PixiMapCanvas } from "@/features/map/ui/pixi-map-canvas"
 import { useMapPanelModel } from "@/features/map/ui/use-map-panel-model"
+
+function InventoryCard({ items }: { items: Item[] }) {
+  return (
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle>物品库存</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {items.length > 0 ? (
+          <ul className="space-y-2 text-sm">
+            {items.map((item) => (
+              <li key={item.id} className="rounded-md border px-2 py-1.5">
+                <p className="font-medium">{item.name}</p>
+                <p className="text-muted-foreground text-xs">
+                  类别: {ITEM_CATEGORY_LABEL[item.category]} · 重量: {item.weight.toFixed(1)} ·
+                  价值: {item.value} · 数量: {item.quantity}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground text-sm">暂无物品。</p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
 
 export function MapPanel() {
   const {
@@ -23,6 +51,8 @@ export function MapPanel() {
     selectedNode,
     selectedSquad,
     selectedCharacters,
+    selectedNodeItems,
+    selectedSquadItems,
     availableActions,
     interactionLogs,
     focusedSquadId,
@@ -117,6 +147,7 @@ export function MapPanel() {
                       )}
                     </CardContent>
                   </Card>
+                  <InventoryCard items={selectedNodeItems} />
                   <CharacterRoster characters={selectedCharacters} />
                 </div>
               ) : selectedSquad ? (
@@ -177,6 +208,7 @@ export function MapPanel() {
                       )}
                     </CardContent>
                   </Card>
+                  <InventoryCard items={selectedSquadItems} />
                   <CharacterRoster characters={selectedSquad.members} />
                 </div>
               ) : (

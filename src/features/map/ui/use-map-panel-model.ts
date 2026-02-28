@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react"
 
+import { getLocationInventoryMap, getNpcSquadInventoryMap } from "@/features/items/data/session-inventories"
+import { getNpcSquadTemplates } from "@/features/map/data/npc-squads"
 import {
   WASTELAND_MAP_NODES,
   WASTELAND_MAP_OBSTACLES,
   WASTELAND_WORLD_CONFIG,
 } from "@/features/map/data/wasteland-map"
 import { buildLocationCharacterMap } from "@/features/map/lib/location-characters"
-import { createNpcSquadTemplates } from "@/features/map/lib/npc-squads"
-import { buildNavigationGrid } from "@/features/map/lib/pathfinding"
 import type {
   MapInteractionActionId,
   NpcSquadSnapshot,
@@ -27,17 +27,17 @@ export function useMapPanelModel() {
     return buildLocationCharacterMap(WASTELAND_MAP_NODES)
   }, [])
 
-  const navigationGrid = useMemo(() => {
-    return buildNavigationGrid(WASTELAND_WORLD_CONFIG, WASTELAND_MAP_OBSTACLES)
+  const npcSquads = useMemo(() => {
+    return getNpcSquadTemplates()
   }, [])
 
-  const npcSquads = useMemo(() => {
-    return createNpcSquadTemplates({
-      navigationGrid,
-      nodes: WASTELAND_MAP_NODES,
-      world: WASTELAND_WORLD_CONFIG,
-    })
-  }, [navigationGrid])
+  const locationInventories = useMemo(() => {
+    return getLocationInventoryMap(WASTELAND_MAP_NODES.map((node) => node.id))
+  }, [])
+
+  const squadInventories = useMemo(() => {
+    return getNpcSquadInventoryMap(npcSquads.map((squad) => squad.id))
+  }, [npcSquads])
 
   const selectedNode = useMemo(() => {
     if (!selection || selection.type !== "node") {
@@ -49,6 +49,8 @@ export function useMapPanelModel() {
 
   const selectedSquad = selection?.type === "squad" ? selection.squad : null
   const selectedCharacters = selectedNode ? locationCharacters[selectedNode.id] ?? [] : []
+  const selectedNodeItems = selectedNode ? locationInventories[selectedNode.id] ?? [] : []
+  const selectedSquadItems = selectedSquad ? squadInventories[selectedSquad.id] ?? [] : []
   const {
     availableActions,
     interactionLogs,
@@ -91,6 +93,8 @@ export function useMapPanelModel() {
     selectedNode,
     selectedSquad,
     selectedCharacters,
+    selectedNodeItems,
+    selectedSquadItems,
     availableActions,
     interactionLogs,
     focusedSquadId,

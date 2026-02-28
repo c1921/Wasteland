@@ -64,6 +64,7 @@ describe("MapPanel", () => {
     selectNode("ash-hub")
 
     expect(screen.getByRole("dialog", { name: "灰烬中枢" })).toBeTruthy()
+    expect(screen.getByText("物品库存")).toBeTruthy()
     expect(screen.getAllByText("角色栏").length).toBeGreaterThan(0)
   })
 
@@ -94,6 +95,7 @@ describe("MapPanel", () => {
     expect(screen.getByRole("dialog", { name: "灰狼巡逻组-1" })).toBeTruthy()
     expect(screen.getByText("NPC队伍")).toBeTruthy()
     expect(screen.getByText("队伍状态")).toBeTruthy()
+    expect(screen.getByText("物品库存")).toBeTruthy()
     expect(screen.getByText(/当前位置:/)).toBeTruthy()
     expect(screen.getAllByText("角色栏").length).toBeGreaterThan(0)
   })
