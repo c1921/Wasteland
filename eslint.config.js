@@ -19,6 +19,29 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@/features/map',
+              message: 'Import from explicit map module paths such as "@/features/map/ui/map-panel".',
+            },
+            {
+              name: '@/features/map/index',
+              message: 'Import from explicit map module paths instead of the map barrel export.',
+            },
+          ],
+          patterns: [
+            {
+              group: ['@/components/panels/map*'],
+              message: 'Map code should be imported from "@/features/map/*".',
+            },
+          ],
+        },
+      ],
+    },
   },
   {
     files: ['src/components/ui/**/*.{ts,tsx}'],

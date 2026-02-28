@@ -1,18 +1,37 @@
-import { useState } from "react"
+import {
+  lazy,
+  Suspense,
+  useState,
+  type ComponentType,
+} from "react"
 
 import { SidebarNav } from "@/components/layout/sidebar-nav"
 import { TopTimeBar } from "@/components/layout/top-time-bar"
-import { BasePanel } from "@/components/panels/base-panel"
-import { BattlePanel } from "@/components/panels/battle-panel"
-import { EventsPanel } from "@/components/panels/events-panel"
+import { Skeleton } from "@/components/ui/skeleton"
 import { MapPanel } from "@/features/map/ui/map-panel"
-import { ItemsPanel } from "@/components/panels/items-panel"
-import { SettingsPanel } from "@/components/panels/settings-panel"
-import { TeamPanel } from "@/components/panels/team-panel"
 import {
   NAV_ITEMS,
   type NavKey,
 } from "@/types/navigation"
+
+const TeamPanel = lazy(async () => ({
+  default: (await import("@/components/panels/team-panel")).TeamPanel,
+}))
+const EventsPanel = lazy(async () => ({
+  default: (await import("@/components/panels/events-panel")).EventsPanel,
+}))
+const BasePanel = lazy(async () => ({
+  default: (await import("@/components/panels/base-panel")).BasePanel,
+}))
+const BattlePanel = lazy(async () => ({
+  default: (await import("@/components/panels/battle-panel")).BattlePanel,
+}))
+const ItemsPanel = lazy(async () => ({
+  default: (await import("@/components/panels/items-panel")).ItemsPanel,
+}))
+const SettingsPanel = lazy(async () => ({
+  default: (await import("@/components/panels/settings-panel")).SettingsPanel,
+}))
 
 const navTitleMap: Record<NavKey, string> = {
   map: "地图",
@@ -22,6 +41,16 @@ const navTitleMap: Record<NavKey, string> = {
   battle: "战斗",
   items: "物品",
   settings: "设置",
+}
+
+const panelRegistry: Record<NavKey, ComponentType> = {
+  map: MapPanel,
+  team: TeamPanel,
+  events: EventsPanel,
+  base: BasePanel,
+  battle: BattlePanel,
+  items: ItemsPanel,
+  settings: SettingsPanel,
 }
 
 export function GameShell() {
@@ -59,23 +88,39 @@ type ActivePanelProps = {
   activeNav: NavKey
 }
 
+function PanelFallback({ activeNav }: ActivePanelProps) {
+  return (
+    <section
+      className="mx-auto flex w-full max-w-5xl flex-col gap-4"
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <div className="rounded-lg border bg-card p-4 md:p-5">
+        <span className="sr-only">{navTitleMap[activeNav]}加载中</span>
+        <div className="grid gap-4">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-4 w-72 max-w-full" />
+          <Skeleton className="h-4 w-64 max-w-full" />
+          <Skeleton className="h-4 w-48 max-w-full" />
+          <div className="pt-1">
+            <Skeleton className="h-24 w-full" />
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function ActivePanel({ activeNav }: ActivePanelProps) {
-  switch (activeNav) {
-    case "map":
-      return <MapPanel />
-    case "team":
-      return <TeamPanel />
-    case "events":
-      return <EventsPanel />
-    case "base":
-      return <BasePanel />
-    case "battle":
-      return <BattlePanel />
-    case "items":
-      return <ItemsPanel />
-    case "settings":
-      return <SettingsPanel />
-    default:
-      return <MapPanel />
+  const PanelComponent = panelRegistry[activeNav] ?? MapPanel
+
+  if (activeNav === "map") {
+    return <MapPanel />
   }
+
+  return (
+    <Suspense fallback={<PanelFallback activeNav={activeNav} />}>
+      <PanelComponent />
+    </Suspense>
+  )
 }
