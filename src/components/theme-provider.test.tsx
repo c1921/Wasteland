@@ -59,15 +59,15 @@ describe("ThemeProvider", () => {
       <ThemeProvider
         defaultTheme="light"
         storageKey={THEME_STORAGE_KEY}
-        defaultBaseColor="stone"
+        defaultBaseColor="neutral"
         baseColorStorageKey={BASE_COLOR_STORAGE_KEY}
       >
         <ThemeHarness />
       </ThemeProvider>
     )
 
-    expect(screen.getByTestId("base-color-value").textContent).toBe("stone")
-    expect(document.documentElement.getAttribute("data-base-color")).toBe("stone")
+    expect(screen.getByTestId("base-color-value").textContent).toBe("neutral")
+    expect(document.documentElement.getAttribute("data-base-color")).toBe("neutral")
   })
 
   it("hydrates theme and base color from localStorage", () => {
@@ -78,7 +78,7 @@ describe("ThemeProvider", () => {
       <ThemeProvider
         defaultTheme="light"
         storageKey={THEME_STORAGE_KEY}
-        defaultBaseColor="stone"
+        defaultBaseColor="neutral"
         baseColorStorageKey={BASE_COLOR_STORAGE_KEY}
       >
         <ThemeHarness />
@@ -98,15 +98,15 @@ describe("ThemeProvider", () => {
       <ThemeProvider
         defaultTheme="light"
         storageKey={THEME_STORAGE_KEY}
-        defaultBaseColor="stone"
+        defaultBaseColor="neutral"
         baseColorStorageKey={BASE_COLOR_STORAGE_KEY}
       >
         <ThemeHarness />
       </ThemeProvider>
     )
 
-    expect(screen.getByTestId("base-color-value").textContent).toBe("stone")
-    expect(document.documentElement.getAttribute("data-base-color")).toBe("stone")
+    expect(screen.getByTestId("base-color-value").textContent).toBe("neutral")
+    expect(document.documentElement.getAttribute("data-base-color")).toBe("neutral")
   })
 
   it("updates DOM and storage when theme and base color are changed", () => {
@@ -114,7 +114,7 @@ describe("ThemeProvider", () => {
       <ThemeProvider
         defaultTheme="light"
         storageKey={THEME_STORAGE_KEY}
-        defaultBaseColor="stone"
+        defaultBaseColor="neutral"
         baseColorStorageKey={BASE_COLOR_STORAGE_KEY}
       >
         <ThemeHarness />

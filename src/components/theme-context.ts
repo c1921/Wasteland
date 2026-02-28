@@ -12,7 +12,7 @@ export type ThemeProviderState = {
 
 const initialState: ThemeProviderState = {
   theme: "system",
-  baseColor: "stone",
+  baseColor: "neutral",
   setTheme: () => null,
   setBaseColor: () => null,
 }

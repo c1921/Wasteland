@@ -17,7 +17,7 @@ export function ThemeProvider({
   children,
   defaultTheme = "system",
   storageKey = "vite-ui-theme",
-  defaultBaseColor = "stone",
+  defaultBaseColor = "neutral",
   baseColorStorageKey = "vite-ui-base-color",
   ...props
 }: ThemeProviderProps) {

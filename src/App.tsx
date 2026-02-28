@@ -6,7 +6,7 @@ export default function App() {
     <ThemeProvider
       defaultTheme="dark"
       storageKey="vite-ui-theme"
-      defaultBaseColor="stone"
+      defaultBaseColor="neutral"
       baseColorStorageKey="vite-ui-base-color"
     >
       <GameShell />
