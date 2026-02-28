@@ -5,7 +5,10 @@ import type { TimeSpeed } from "@/features/time/types"
 export type GameClockContextValue = {
   currentTime: Date
   speed: TimeSpeed
+  isPaused: boolean
   setSpeed: (nextSpeed: TimeSpeed) => void
+  setPaused: (nextPaused: boolean) => void
+  togglePause: () => void
   formattedDateTime: string
 }
 

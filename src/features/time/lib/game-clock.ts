@@ -1,4 +1,5 @@
 import {
+  DEFAULT_IS_PAUSED,
   DEFAULT_TIME_SPEED,
   TIME_SPEED_OPTIONS,
   type GameClockState,
@@ -41,18 +42,21 @@ export function serializeClockState(state: GameClockState) {
   return JSON.stringify({
     currentTimeMs: Math.floor(state.currentTimeMs),
     speed: state.speed,
+    isPaused: state.isPaused,
   })
 }
 
 export function deserializeClockState(
   raw: string | null,
   fallbackTimeMs: number,
-  fallbackSpeed: TimeSpeed = DEFAULT_TIME_SPEED
+  fallbackSpeed: TimeSpeed = DEFAULT_TIME_SPEED,
+  fallbackPaused: boolean = DEFAULT_IS_PAUSED
 ): GameClockState {
   if (!raw) {
     return {
       currentTimeMs: fallbackTimeMs,
       speed: fallbackSpeed,
+      isPaused: fallbackPaused,
     }
   }
 
@@ -60,26 +64,32 @@ export function deserializeClockState(
     const parsed = JSON.parse(raw) as {
       currentTimeMs?: unknown
       speed?: unknown
+      isPaused?: unknown
     }
 
     const currentTimeMs = Number(parsed.currentTimeMs)
     const speed = parsed.speed
+    const isPaused =
+      typeof parsed.isPaused === "boolean" ? parsed.isPaused : fallbackPaused
 
     if (!Number.isFinite(currentTimeMs) || !isValidTimeSpeed(speed)) {
       return {
         currentTimeMs: fallbackTimeMs,
         speed: fallbackSpeed,
+        isPaused: fallbackPaused,
       }
     }
 
     return {
       currentTimeMs: Math.floor(currentTimeMs),
       speed,
+      isPaused,
     }
   } catch {
     return {
       currentTimeMs: fallbackTimeMs,
       speed: fallbackSpeed,
+      isPaused: fallbackPaused,
     }
   }
 }

@@ -59,9 +59,10 @@ function setupControllerState(overrides?: {
   })
 }
 
-function setupClockState(speed = 10) {
+function setupClockState(speed = 10, isPaused = false) {
   useGameClockMock.mockReturnValue({
     speed,
+    isPaused,
   })
 }
 
@@ -136,5 +137,15 @@ describe("PixiMapCanvas UI", () => {
 
     expect(screen.getByText("灰烬中枢")).toBeTruthy()
     expect(screen.getByText("聚落")).toBeTruthy()
+  })
+
+  it("uses zero movement scale when game clock is paused", () => {
+    setupClockState(10, true)
+    setupControllerState()
+
+    render(<PixiMapCanvas world={world} nodes={nodes} obstacles={obstacles} />)
+
+    expect(useMapControllerMock).toHaveBeenCalledTimes(1)
+    expect(useMapControllerMock.mock.calls[0][0].movementTimeScale).toBe(0)
   })
 })

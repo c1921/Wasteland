@@ -9,6 +9,7 @@ import {
 } from "@/features/time/lib/game-clock"
 import {
   CLOCK_STORAGE_KEY,
+  DEFAULT_IS_PAUSED,
   DEFAULT_TIME_SPEED,
   GAME_START_ISO,
   type GameClockState,
@@ -30,13 +31,15 @@ function readInitialClockState(storageKey: string, startTimeMs: number): GameClo
     return {
       currentTimeMs: startTimeMs,
       speed: DEFAULT_TIME_SPEED,
+      isPaused: DEFAULT_IS_PAUSED,
     }
   }
 
   return deserializeClockState(
     window.localStorage.getItem(storageKey),
     startTimeMs,
-    DEFAULT_TIME_SPEED
+    DEFAULT_TIME_SPEED,
+    DEFAULT_IS_PAUSED
   )
 }
 
@@ -55,6 +58,7 @@ export function GameClockProvider({
   const lastPublishedMinuteRef = useRef(Math.floor(clockState.currentTimeMs / 60000))
   const currentTimeMsRef = useRef(clockState.currentTimeMs)
   const speedRef = useRef(clockState.speed)
+  const isPausedRef = useRef(clockState.isPaused)
 
   const persistClock = useCallback(() => {
     if (typeof window === "undefined") {
@@ -66,6 +70,7 @@ export function GameClockProvider({
       serializeClockState({
         currentTimeMs: currentTimeMsRef.current,
         speed: speedRef.current,
+        isPaused: isPausedRef.current,
       })
     )
   }, [storageKey])
@@ -74,6 +79,7 @@ export function GameClockProvider({
     setClockState({
       currentTimeMs: Math.floor(currentTimeMsRef.current),
       speed: speedRef.current,
+      isPaused: isPausedRef.current,
     })
   }, [])
 
@@ -88,6 +94,20 @@ export function GameClockProvider({
     persistClock()
   }, [persistClock, publishClockState])
 
+  const setPaused = useCallback((nextPaused: boolean) => {
+    if (isPausedRef.current === nextPaused) {
+      return
+    }
+
+    isPausedRef.current = nextPaused
+    publishClockState()
+    persistClock()
+  }, [persistClock, publishClockState])
+
+  const togglePause = useCallback(() => {
+    setPaused(!isPausedRef.current)
+  }, [setPaused])
+
   useEffect(() => {
     if (typeof window === "undefined") {
       return
@@ -100,7 +120,7 @@ export function GameClockProvider({
           FRAME_DELTA_CAP_MS
         )
 
-        if (deltaRealMs > 0) {
+        if (deltaRealMs > 0 && !isPausedRef.current) {
           currentTimeMsRef.current = advanceGameTime(
             currentTimeMsRef.current,
             deltaRealMs,
@@ -157,10 +177,20 @@ export function GameClockProvider({
     return {
       currentTime,
       speed: clockState.speed,
+      isPaused: clockState.isPaused,
       setSpeed,
+      setPaused,
+      togglePause,
       formattedDateTime: formatGameDateTime(clockState.currentTimeMs),
     }
-  }, [clockState.currentTimeMs, clockState.speed, setSpeed])
+  }, [
+    clockState.currentTimeMs,
+    clockState.isPaused,
+    clockState.speed,
+    setPaused,
+    setSpeed,
+    togglePause,
+  ])
 
   return (
     <GameClockContext.Provider value={value}>

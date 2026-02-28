@@ -5,8 +5,10 @@ export type TimeSpeed = (typeof TIME_SPEED_OPTIONS)[number]
 export type GameClockState = {
   currentTimeMs: number
   speed: TimeSpeed
+  isPaused: boolean
 }
 
 export const DEFAULT_TIME_SPEED: TimeSpeed = 1
+export const DEFAULT_IS_PAUSED = false
 export const GAME_START_ISO = "2059-01-01T08:00:00"
 export const CLOCK_STORAGE_KEY = "wasteland.gameClock.v1"

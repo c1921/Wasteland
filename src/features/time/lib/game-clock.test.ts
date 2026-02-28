@@ -38,13 +38,14 @@ describe("game clock utilities", () => {
 
   it("hydrates persisted state when payload is valid", () => {
     const state = deserializeClockState(
-      JSON.stringify({ currentTimeMs: 123_456, speed: 5 }),
+      JSON.stringify({ currentTimeMs: 123_456, speed: 5, isPaused: true }),
       1000
     )
 
     expect(state).toEqual({
       currentTimeMs: 123_456,
       speed: 5,
+      isPaused: true,
     })
   })
 
@@ -57,6 +58,20 @@ describe("game clock utilities", () => {
     expect(fallback).toEqual({
       currentTimeMs: 5000,
       speed: 1,
+      isPaused: false,
+    })
+  })
+
+  it("falls back pause state for legacy payload without isPaused", () => {
+    const state = deserializeClockState(
+      JSON.stringify({ currentTimeMs: 123_456, speed: 5 }),
+      5000
+    )
+
+    expect(state).toEqual({
+      currentTimeMs: 123_456,
+      speed: 5,
+      isPaused: false,
     })
   })
 
@@ -64,9 +79,10 @@ describe("game clock utilities", () => {
     const serialized = serializeClockState({
       currentTimeMs: 1000,
       speed: 10,
+      isPaused: true,
     })
 
-    expect(serialized).toBe('{"currentTimeMs":1000,"speed":10}')
+    expect(serialized).toBe('{"currentTimeMs":1000,"speed":10,"isPaused":true}')
   })
 
   it("validates allowed speed options", () => {

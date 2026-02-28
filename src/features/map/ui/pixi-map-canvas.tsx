@@ -33,14 +33,14 @@ export function PixiMapCanvas({
   className,
 }: PixiMapCanvasProps) {
   const hostRef = useRef<HTMLDivElement | null>(null)
-  const { speed } = useGameClock()
+  const { speed, isPaused = false } = useGameClock()
   const { tooltip, statusMessage, zoomPercent, zoomIn, zoomOut } = useMapController({
     hostRef,
     world,
     nodes,
     obstacles,
     npcSquads,
-    movementTimeScale: speed,
+    movementTimeScale: isPaused ? 0 : speed,
     onNodeSelect,
     onSquadSelect,
   })

@@ -3,7 +3,7 @@ import { useGameClock } from "@/features/time/game-clock-store"
 import { TIME_SPEED_OPTIONS } from "@/features/time/types"
 
 export function TopTimeBar() {
-  const { formattedDateTime, speed, setSpeed } = useGameClock()
+  const { formattedDateTime, isPaused, speed, setSpeed, togglePause } = useGameClock()
 
   return (
     <div className="border-b bg-background/90 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/75 md:px-4">
@@ -13,6 +13,15 @@ export function TopTimeBar() {
           <span className="text-sm font-medium tabular-nums">{formattedDateTime}</span>
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            size="xs"
+            variant={isPaused ? "secondary" : "outline"}
+            aria-pressed={isPaused}
+            onClick={togglePause}
+          >
+            {isPaused ? "继续" : "暂停"}
+          </Button>
           {TIME_SPEED_OPTIONS.map((option) => (
             <Button
               key={option}
