@@ -352,7 +352,13 @@ export function observeThemeClassChange(
   const observedRoot = root ?? document.documentElement
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
-      if (mutation.type === "attributes" && mutation.attributeName === "class") {
+      if (
+        mutation.type === "attributes" &&
+        (
+          mutation.attributeName === "class" ||
+          mutation.attributeName === "data-base-color"
+        )
+      ) {
         onChange()
         return
       }
@@ -361,7 +367,7 @@ export function observeThemeClassChange(
 
   observer.observe(observedRoot, {
     attributes: true,
-    attributeFilter: ["class"],
+    attributeFilter: ["class", "data-base-color"],
   })
 
   return () => {

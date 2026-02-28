@@ -19,6 +19,7 @@ describe("map theme palette", () => {
     root.style.removeProperty("--border")
     root.style.removeProperty("--muted-foreground")
     root.className = ""
+    root.removeAttribute("data-base-color")
   })
 
   it("resolves colors from rgb, hex and oklch css variables", () => {
@@ -63,7 +64,7 @@ describe("map theme palette", () => {
     })
   })
 
-  it("observes class changes and stops after disconnect", async () => {
+  it("observes class and base color changes and stops after disconnect", async () => {
     const onThemeChange = vi.fn()
     const stopObserver = observeThemeClassChange(onThemeChange, root)
 
@@ -71,9 +72,14 @@ describe("map theme palette", () => {
     await flushMutationObserver()
     expect(onThemeChange).toHaveBeenCalledTimes(1)
 
+    root.setAttribute("data-base-color", "gray")
+    await flushMutationObserver()
+    expect(onThemeChange).toHaveBeenCalledTimes(2)
+
     stopObserver()
     root.classList.remove("dark")
+    root.setAttribute("data-base-color", "zinc")
     await flushMutationObserver()
-    expect(onThemeChange).toHaveBeenCalledTimes(1)
+    expect(onThemeChange).toHaveBeenCalledTimes(2)
   })
 })
