@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
-import { CharacterRoster } from "@/components/panels/character-roster"
+import { CharacterRoster } from "@/features/character/ui/character-roster"
 import { Character, Gender } from "@/features/character/types"
 
 const sampleCharacters = [

@@ -1,8 +1,8 @@
 import { useMemo } from "react"
 
-import { CharacterRoster } from "@/components/panels/character-roster"
-import { PanelShell } from "@/components/panels/panel-shell"
 import { getCharacters } from "@/features/character/data/characters"
+import { CharacterRoster } from "@/features/character/ui/character-roster"
+import { PanelShell } from "@/shared/ui/panel-shell"
 
 export function TeamPanel() {
   const characters = useMemo(() => getCharacters(), [])

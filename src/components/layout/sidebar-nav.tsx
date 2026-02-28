@@ -1,6 +1,6 @@
+import type { NavItem, NavKey } from "@/app/navigation/types"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import type { NavItem, NavKey } from "@/types/navigation"
 
 type SidebarNavProps = {
   items: NavItem[]

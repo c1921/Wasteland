@@ -38,6 +38,10 @@ export default defineConfig([
               group: ['@/components/panels/map*'],
               message: 'Map code should be imported from "@/features/map/*".',
             },
+            {
+              group: ['@/components/panels/*'],
+              message: 'Feature panels must be imported from "@/features/*/ui/*".',
+            },
           ],
         },
       ],

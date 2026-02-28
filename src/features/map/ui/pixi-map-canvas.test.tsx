@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import type { MapTooltipState } from "@/engine/runtime/types"
 import { PixiMapCanvas } from "@/features/map/ui/pixi-map-canvas"
-import type { MapTooltipState } from "@/features/map/render/pixi-scene"
 import type {
   MapNode,
   MapObstacle,

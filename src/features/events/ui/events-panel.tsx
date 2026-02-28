@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { PanelShell } from "@/components/panels/panel-shell"
+import { PanelShell } from "@/shared/ui/panel-shell"
 
 export function EventsPanel() {
   return (

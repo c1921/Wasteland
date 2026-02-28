@@ -1,4 +1,3 @@
-import { CharacterRoster } from "@/components/panels/character-roster"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -8,6 +7,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import { CharacterRoster } from "@/features/character/ui/character-roster"
 import { NODE_KIND_LABEL } from "@/features/map/constants"
 import { PixiMapCanvas } from "@/features/map/ui/pixi-map-canvas"
 import { useMapPanelModel } from "@/features/map/ui/use-map-panel-model"

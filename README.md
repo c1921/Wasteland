@@ -22,20 +22,24 @@ npm run preview   # preview production build
 
 ## Architecture
 
+`src/app/*` contains application assembly (provider wiring and navigation registry).
 `src/features/*` contains domain logic and feature UIs.
-`src/components/*` contains layout primitives, generic UI wrappers, and non-feature-specific panels.
+`src/shared/*` contains shared reusable primitives.
+`src/engine/*` contains runtime contracts and renderer adapters.
+`src/components/*` contains layout and generic UI wrappers.
 
 Current key modules:
 
 - `src/features/map`: map data, pathfinding, NPC movement, Pixi scene rendering.
 - `src/features/time`: game clock state, persistence, context/provider.
 - `src/features/character`: character generation and static datasets.
+- `src/engine/runtime`: map runtime interface and Pixi adapter.
 
 ## Map Module Boundaries
 
 - Use explicit imports from `@/features/map/*` paths.
-- Do not import map code from legacy `@/components/panels/map*` paths.
-- `createPixiMapScene` is the map rendering entrypoint; internal scene code is split into camera/draw/interaction/runtime helpers under `src/features/map/render/scene`.
+- UI/controller code should consume runtime contracts from `@/engine/runtime/*`.
+- `createPixiMapScene` remains the Pixi adapter internals under `src/features/map/render/scene`.
 
 ## Quality Gates
 

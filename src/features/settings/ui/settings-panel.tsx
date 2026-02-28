@@ -6,7 +6,6 @@ import {
   type BaseColor,
   type Theme,
 } from "@/components/theme-context"
-import { PanelShell } from "@/components/panels/panel-shell"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -15,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { PanelShell } from "@/shared/ui/panel-shell"
 
 type ThemeOption = {
   value: Theme

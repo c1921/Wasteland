@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react"
 
 import {
-  createPixiMapScene,
-  type MapSceneController,
-  type MapTooltipState,
-} from "@/features/map/render/pixi-scene"
+  createPixiMapRuntime,
+} from "@/engine/runtime/pixi-map-runtime"
+import type {
+  CreateMapRuntime,
+  MapRuntime,
+  MapTooltipState,
+} from "@/engine/runtime/types"
 import type {
   MapNode,
   MapObstacle,
@@ -22,6 +25,7 @@ type UseMapControllerParams = {
   movementTimeScale: number
   onNodeSelect?: (nodeId: string) => void
   onSquadSelect?: (squad: NpcSquadSnapshot) => void
+  createRuntime?: CreateMapRuntime
 }
 
 const STATUS_DURATION_MS = 1800
@@ -35,8 +39,9 @@ export function useMapController({
   movementTimeScale,
   onNodeSelect,
   onSquadSelect,
+  createRuntime = createPixiMapRuntime,
 }: UseMapControllerParams) {
-  const sceneRef = useRef<MapSceneController | null>(null)
+  const runtimeRef = useRef<MapRuntime | null>(null)
   const statusTimerRef = useRef<number | null>(null)
   const onNodeSelectRef = useRef<typeof onNodeSelect>(onNodeSelect)
   const onSquadSelectRef = useRef<typeof onSquadSelect>(onSquadSelect)
@@ -57,7 +62,7 @@ export function useMapController({
 
   useEffect(() => {
     movementTimeScaleRef.current = movementTimeScale
-    sceneRef.current?.setMovementTimeScale(movementTimeScale)
+    runtimeRef.current?.setMovementTimeScale(movementTimeScale)
   }, [movementTimeScale])
 
   const clearStatusTimer = useCallback(() => {
@@ -77,14 +82,14 @@ export function useMapController({
     let cancelled = false
 
     const mountScene = async () => {
-      const scene = await createPixiMapScene({
+      const runtime = await createRuntime({
         host,
         world,
         nodes,
         obstacles,
         npcSquads,
         movementTimeScale: movementTimeScaleRef.current,
-        callbacks: {
+        events: {
           onTooltipChange: (nextTooltip) => {
             if (!cancelled) {
               setTooltip(nextTooltip)
@@ -122,11 +127,11 @@ export function useMapController({
       })
 
       if (cancelled) {
-        scene.destroy()
+        runtime.destroy()
         return
       }
 
-      sceneRef.current = scene
+      runtimeRef.current = runtime
     }
 
     void mountScene().catch((error: unknown) => {
@@ -139,18 +144,26 @@ export function useMapController({
       setTooltip(null)
       setStatusMessage(null)
 
-      const scene = sceneRef.current
-      sceneRef.current = null
-      scene?.destroy()
+      const runtime = runtimeRef.current
+      runtimeRef.current = null
+      runtime?.destroy()
     }
-  }, [clearStatusTimer, hostRef, nodes, npcSquads, obstacles, world])
+  }, [
+    clearStatusTimer,
+    createRuntime,
+    hostRef,
+    nodes,
+    npcSquads,
+    obstacles,
+    world,
+  ])
 
   const zoomIn = useCallback(() => {
-    sceneRef.current?.zoomIn()
+    runtimeRef.current?.zoomIn()
   }, [])
 
   const zoomOut = useCallback(() => {
-    sceneRef.current?.zoomOut()
+    runtimeRef.current?.zoomOut()
   }, [])
 
   return {

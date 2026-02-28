@@ -1,57 +1,17 @@
 import {
-  lazy,
   Suspense,
   useState,
-  type ComponentType,
 } from "react"
 
+import {
+  NAV_ITEMS,
+  NAV_TITLE_MAP,
+} from "@/app/navigation/nav-config"
+import { PANEL_REGISTRY } from "@/app/navigation/panel-registry"
+import type { NavKey } from "@/app/navigation/types"
 import { SidebarNav } from "@/components/layout/sidebar-nav"
 import { TopTimeBar } from "@/components/layout/top-time-bar"
 import { Skeleton } from "@/components/ui/skeleton"
-import { MapPanel } from "@/features/map/ui/map-panel"
-import {
-  NAV_ITEMS,
-  type NavKey,
-} from "@/types/navigation"
-
-const TeamPanel = lazy(async () => ({
-  default: (await import("@/components/panels/team-panel")).TeamPanel,
-}))
-const EventsPanel = lazy(async () => ({
-  default: (await import("@/components/panels/events-panel")).EventsPanel,
-}))
-const BasePanel = lazy(async () => ({
-  default: (await import("@/components/panels/base-panel")).BasePanel,
-}))
-const BattlePanel = lazy(async () => ({
-  default: (await import("@/components/panels/battle-panel")).BattlePanel,
-}))
-const ItemsPanel = lazy(async () => ({
-  default: (await import("@/components/panels/items-panel")).ItemsPanel,
-}))
-const SettingsPanel = lazy(async () => ({
-  default: (await import("@/components/panels/settings-panel")).SettingsPanel,
-}))
-
-const navTitleMap: Record<NavKey, string> = {
-  map: "地图",
-  team: "队伍",
-  events: "事件",
-  base: "基地",
-  battle: "战斗",
-  items: "物品",
-  settings: "设置",
-}
-
-const panelRegistry: Record<NavKey, ComponentType> = {
-  map: MapPanel,
-  team: TeamPanel,
-  events: EventsPanel,
-  base: BasePanel,
-  battle: BattlePanel,
-  items: ItemsPanel,
-  settings: SettingsPanel,
-}
 
 export function GameShell() {
   const [activeNav, setActiveNav] = useState<NavKey>("map")
@@ -73,7 +33,7 @@ export function GameShell() {
                 Wasteland Control
               </p>
               <p className="text-xs text-muted-foreground">
-                当前面板: {navTitleMap[activeNav]}
+                当前面板: {NAV_TITLE_MAP[activeNav]}
               </p>
             </header>
           )}
@@ -96,7 +56,7 @@ function PanelFallback({ activeNav }: ActivePanelProps) {
       aria-live="polite"
     >
       <div className="rounded-lg border bg-card p-4 md:p-5">
-        <span className="sr-only">{navTitleMap[activeNav]}加载中</span>
+        <span className="sr-only">{NAV_TITLE_MAP[activeNav]}加载中</span>
         <div className="grid gap-4">
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-4 w-72 max-w-full" />
@@ -112,10 +72,10 @@ function PanelFallback({ activeNav }: ActivePanelProps) {
 }
 
 function ActivePanel({ activeNav }: ActivePanelProps) {
-  const PanelComponent = panelRegistry[activeNav] ?? MapPanel
+  const PanelComponent = PANEL_REGISTRY[activeNav]
 
   if (activeNav === "map") {
-    return <MapPanel />
+    return <PanelComponent />
   }
 
   return (
