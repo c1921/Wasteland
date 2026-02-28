@@ -58,6 +58,7 @@ type SceneCallbacks = {
   onTooltipChange: (tooltip: MapTooltipState | null) => void
   onStatusMessage: (message: string) => void
   onZoomPercentChange: (zoomPercent: number) => void
+  onNodeSelect: (nodeId: string) => void
 }
 
 type CreatePixiMapSceneParams = {
@@ -287,6 +288,13 @@ export async function createPixiMapScene({
       marker.on("pointermove", updateTooltipPosition)
       marker.on("pointerout", () => {
         callbacks.onTooltipChange(null)
+      })
+      marker.on("pointerdown", (event: FederatedPointerEvent) => {
+        event.stopPropagation()
+      })
+      marker.on("pointertap", (event: FederatedPointerEvent) => {
+        event.stopPropagation()
+        callbacks.onNodeSelect(node.id)
       })
 
       nodeLayer.addChild(marker)

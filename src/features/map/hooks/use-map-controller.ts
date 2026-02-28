@@ -12,6 +12,7 @@ type UseMapControllerParams = {
   world: WorldConfig
   nodes: MapNode[]
   obstacles: MapObstacle[]
+  onNodeSelect?: (nodeId: string) => void
 }
 
 const STATUS_DURATION_MS = 1800
@@ -21,14 +22,20 @@ export function useMapController({
   world,
   nodes,
   obstacles,
+  onNodeSelect,
 }: UseMapControllerParams) {
   const sceneRef = useRef<MapSceneController | null>(null)
   const statusTimerRef = useRef<number | null>(null)
+  const onNodeSelectRef = useRef<typeof onNodeSelect>(onNodeSelect)
   const [tooltip, setTooltip] = useState<MapTooltipState | null>(null)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [zoomPercent, setZoomPercent] = useState<number>(
     Math.round(world.defaultZoom * 100)
   )
+
+  useEffect(() => {
+    onNodeSelectRef.current = onNodeSelect
+  }, [onNodeSelect])
 
   const clearStatusTimer = useCallback(() => {
     if (statusTimerRef.current !== null) {
@@ -74,6 +81,11 @@ export function useMapController({
           onZoomPercentChange: (nextZoomPercent) => {
             if (!cancelled) {
               setZoomPercent(nextZoomPercent)
+            }
+          },
+          onNodeSelect: (nodeId) => {
+            if (!cancelled) {
+              onNodeSelectRef.current?.(nodeId)
             }
           },
         },

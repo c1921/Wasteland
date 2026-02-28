@@ -63,6 +63,23 @@ describe("PixiMapCanvas UI", () => {
     expect(zoomOutMock).toHaveBeenCalledTimes(1)
   })
 
+  it("forwards node selection callback to controller", () => {
+    setupControllerState()
+    const onNodeSelect = vi.fn()
+
+    render(
+      <PixiMapCanvas
+        world={world}
+        nodes={nodes}
+        obstacles={obstacles}
+        onNodeSelect={onNodeSelect}
+      />
+    )
+
+    expect(useMapControllerMock).toHaveBeenCalledTimes(1)
+    expect(useMapControllerMock.mock.calls[0][0].onNodeSelect).toBe(onNodeSelect)
+  })
+
   it("shows status message when present", () => {
     setupControllerState({ statusMessage: "目标不可达：未找到有效路径" })
 

@@ -11,6 +11,7 @@ type PixiMapCanvasProps = {
   world: WorldConfig
   nodes: MapNode[]
   obstacles: MapObstacle[]
+  onNodeSelect?: (nodeId: string) => void
   className?: string
 }
 
@@ -18,6 +19,7 @@ export function PixiMapCanvas({
   world,
   nodes,
   obstacles,
+  onNodeSelect,
   className,
 }: PixiMapCanvasProps) {
   const hostRef = useRef<HTMLDivElement | null>(null)
@@ -26,6 +28,7 @@ export function PixiMapCanvas({
     world,
     nodes,
     obstacles,
+    onNodeSelect,
   })
 
   return (
