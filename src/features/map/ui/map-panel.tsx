@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Sheet,
@@ -22,8 +23,13 @@ export function MapPanel() {
     selectedNode,
     selectedSquad,
     selectedCharacters,
+    availableActions,
+    interactionLogs,
+    focusedSquadId,
+    lastResupplyNodeId,
     handleNodeSelect,
     handleSquadSelect,
+    handleInteractionAction,
     handleDetailsOpenChange,
   } = useMapPanelModel()
 
@@ -66,7 +72,53 @@ export function MapPanel() {
             </SheetHeader>
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
               {selectedNode ? (
-                <CharacterRoster characters={selectedCharacters} />
+                <div className="space-y-3">
+                  <Card size="sm">
+                    <CardHeader>
+                      <CardTitle>互动操作</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex flex-wrap gap-2">
+                        {availableActions.map((action) => (
+                          <Button
+                            key={action.id}
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              handleInteractionAction(action.id)
+                            }}
+                          >
+                            {action.label}
+                          </Button>
+                        ))}
+                      </div>
+                      {lastResupplyNodeId === selectedNode.id ? (
+                        <p className="text-muted-foreground text-xs">
+                          该地点是本会话最近一次补给点。
+                        </p>
+                      ) : null}
+                    </CardContent>
+                  </Card>
+                  <Card size="sm">
+                    <CardHeader>
+                      <CardTitle>互动结果</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {interactionLogs.length > 0 ? (
+                        <ul className="space-y-1 text-sm">
+                          {interactionLogs.map((entry) => (
+                            <li key={entry.id}>{entry.message}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-muted-foreground text-sm">
+                          暂无互动记录。
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                  <CharacterRoster characters={selectedCharacters} />
+                </div>
               ) : selectedSquad ? (
                 <div className="space-y-3">
                   <Card size="sm">
@@ -80,6 +132,49 @@ export function MapPanel() {
                       </p>
                       <p>移动状态: {selectedSquad.moving ? "移动中" : "停留中"}</p>
                       <p>成员数量: {selectedSquad.members.length}</p>
+                      <p>
+                        关注状态:{" "}
+                        {focusedSquadId === selectedSquad.id ? "已关注" : "未关注"}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card size="sm">
+                    <CardHeader>
+                      <CardTitle>互动操作</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex flex-wrap gap-2">
+                        {availableActions.map((action) => (
+                          <Button
+                            key={action.id}
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              handleInteractionAction(action.id)
+                            }}
+                          >
+                            {action.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card size="sm">
+                    <CardHeader>
+                      <CardTitle>互动结果</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {interactionLogs.length > 0 ? (
+                        <ul className="space-y-1 text-sm">
+                          {interactionLogs.map((entry) => (
+                            <li key={entry.id}>{entry.message}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-muted-foreground text-sm">
+                          暂无互动记录。
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                   <CharacterRoster characters={selectedSquad.members} />

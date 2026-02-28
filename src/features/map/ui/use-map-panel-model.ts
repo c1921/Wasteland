@@ -8,7 +8,11 @@ import {
 import { buildLocationCharacterMap } from "@/features/map/lib/location-characters"
 import { createNpcSquadTemplates } from "@/features/map/lib/npc-squads"
 import { buildNavigationGrid } from "@/features/map/lib/pathfinding"
-import type { NpcSquadSnapshot } from "@/features/map/types"
+import type {
+  MapInteractionActionId,
+  NpcSquadSnapshot,
+} from "@/features/map/types"
+import { useMapInteraction } from "@/features/map/ui/use-map-interaction"
 
 type DetailsSelection =
   | { type: "node"; nodeId: string }
@@ -45,6 +49,16 @@ export function useMapPanelModel() {
 
   const selectedSquad = selection?.type === "squad" ? selection.squad : null
   const selectedCharacters = selectedNode ? locationCharacters[selectedNode.id] ?? [] : []
+  const {
+    availableActions,
+    interactionLogs,
+    focusedSquadId,
+    lastResupplyNodeId,
+    executeInteractionAction,
+  } = useMapInteraction({
+    selectedNode,
+    selectedSquad,
+  })
 
   const handleNodeSelect = (nodeId: string) => {
     setSelection({ type: "node", nodeId })
@@ -64,6 +78,10 @@ export function useMapPanelModel() {
     }
   }
 
+  const handleInteractionAction = (actionId: MapInteractionActionId) => {
+    executeInteractionAction(actionId)
+  }
+
   return {
     world: WASTELAND_WORLD_CONFIG,
     nodes: WASTELAND_MAP_NODES,
@@ -73,8 +91,13 @@ export function useMapPanelModel() {
     selectedNode,
     selectedSquad,
     selectedCharacters,
+    availableActions,
+    interactionLogs,
+    focusedSquadId,
+    lastResupplyNodeId,
     handleNodeSelect,
     handleSquadSelect,
+    handleInteractionAction,
     handleDetailsOpenChange,
   }
 }
