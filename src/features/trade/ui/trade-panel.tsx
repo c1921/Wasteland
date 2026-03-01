@@ -26,7 +26,12 @@ import {
   getNpcSquadInventoryById,
   getPlayerTeamInventory,
 } from "@/features/items/data/session-inventories"
-import { ITEM_CATEGORY_LABEL, type Item, type ItemCategory } from "@/features/items/types"
+import {
+  ITEM_CATEGORY_LABEL,
+  ItemCategory,
+  type Item,
+  type ItemCategory as ItemCategoryValue,
+} from "@/features/items/types"
 import { applySessionTrade } from "@/features/trade/data/session-trades"
 import { validateTrade } from "@/features/trade/lib/engine"
 import {
@@ -38,6 +43,7 @@ import type {
   TradeSideSelection,
   TradeTargetRef,
   TradeTargetType,
+  TradeTransferItem,
 } from "@/features/trade/types"
 import { useTradeNavigation } from "@/features/trade/ui/trade-navigation-store"
 import { PanelShell } from "@/shared/ui/panel-shell"
@@ -131,6 +137,7 @@ type TradeTableRow = {
   netQuantity: number
   minNet: number
   maxNet: number
+  deprioritized: boolean
 }
 
 function buildTradeRows({
@@ -142,8 +149,8 @@ function buildTradeRows({
 }: {
   playerItems: Item[]
   targetItems: Item[]
-  blockedBuyCategories: Set<ItemCategory>
-  blockedSellCategories: Set<ItemCategory>
+  blockedBuyCategories: Set<ItemCategoryValue>
+  blockedSellCategories: Set<ItemCategoryValue>
   netSelection: TradeNetSelection
 }) {
   const rows: TradeTableRow[] = []
@@ -156,32 +163,134 @@ function buildTradeRows({
     const targetItem = targetMap.get(itemId)
     const baseItem = playerItem ?? targetItem
 
-    if (!baseItem) {
+    if (!baseItem || baseItem.category === ItemCategory.Currency) {
       continue
     }
 
+    const playerQuantity = playerItem?.quantity ?? 0
+    const targetQuantity = targetItem?.quantity ?? 0
     const blockedBuyFromPlayer = blockedBuyCategories.has(baseItem.category)
     const blockedSellToPlayer = blockedSellCategories.has(baseItem.category)
-    const minNet = blockedBuyFromPlayer ? 0 : -Math.max(0, playerItem?.quantity ?? 0)
-    const maxNet = blockedSellToPlayer ? 0 : Math.max(0, targetItem?.quantity ?? 0)
+    const minNet = blockedBuyFromPlayer ? 0 : -Math.max(0, playerQuantity)
+    const maxNet = blockedSellToPlayer ? 0 : Math.max(0, targetQuantity)
     const rawNetQuantity = netSelection[itemId] ?? 0
+    const deprioritized =
+      (blockedSellToPlayer && playerQuantity === 0) ||
+      (blockedBuyFromPlayer && targetQuantity === 0)
 
     rows.push({
       itemId: baseItem.id,
       name: baseItem.name,
       value: baseItem.value,
-      targetQuantity: targetItem?.quantity ?? 0,
-      playerQuantity: playerItem?.quantity ?? 0,
+      targetQuantity,
+      playerQuantity,
       blockedBuyFromPlayer,
       blockedSellToPlayer,
       netQuantity: clampQuantity(rawNetQuantity, minNet, maxNet),
       minNet,
       maxNet,
+      deprioritized,
     })
   }
 
-  rows.sort((left, right) => left.name.localeCompare(right.name, "zh-Hans-CN"))
+  rows.sort((left, right) => {
+    if (left.deprioritized !== right.deprioritized) {
+      return left.deprioritized ? 1 : -1
+    }
+
+    return left.name.localeCompare(right.name, "zh-Hans-CN")
+  })
   return rows
+}
+
+function formatTransferEntries(entries: TradeTransferItem[], itemNameById: Map<string, string>) {
+  if (entries.length === 0) {
+    return "无"
+  }
+
+  return entries
+    .map((entry) => `${itemNameById.get(entry.itemId) ?? entry.itemId}x${entry.quantity}`)
+    .join("、")
+}
+
+function sumTransferValue(entries: TradeTransferItem[], itemById: Map<string, Item>) {
+  let total = 0
+
+  for (const entry of entries) {
+    if (entry.quantity <= 0) {
+      continue
+    }
+
+    const item = itemById.get(entry.itemId)
+
+    if (!item) {
+      continue
+    }
+
+    total += item.value * entry.quantity
+  }
+
+  return total
+}
+
+function sumNonCurrencySelectionValue(inventory: Item[], selection: TradeSideSelection) {
+  const itemById = new Map(inventory.map((item) => [item.id, item]))
+  let total = 0
+
+  for (const [itemId, quantity] of Object.entries(selection)) {
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      continue
+    }
+
+    const item = itemById.get(itemId)
+
+    if (!item || item.category === ItemCategory.Currency) {
+      continue
+    }
+
+    total += item.value * quantity
+  }
+
+  return total
+}
+
+function resolveAutoCurrencyTransfersPreview({
+  inventory,
+  manualSelection,
+  resolvedSelection,
+}: {
+  inventory: Item[]
+  manualSelection: TradeSideSelection
+  resolvedSelection: TradeSideSelection
+}): TradeTransferItem[] {
+  const itemById = new Map(inventory.map((item) => [item.id, item]))
+  const transfers: TradeTransferItem[] = []
+
+  for (const [itemId, resolvedQuantity] of Object.entries(resolvedSelection)) {
+    if (!Number.isInteger(resolvedQuantity) || resolvedQuantity <= 0) {
+      continue
+    }
+
+    const manualQuantity = manualSelection[itemId] ?? 0
+    const autoQuantity = resolvedQuantity - manualQuantity
+
+    if (autoQuantity <= 0) {
+      continue
+    }
+
+    const item = itemById.get(itemId)
+
+    if (!item || item.category !== ItemCategory.Currency) {
+      continue
+    }
+
+    transfers.push({
+      itemId,
+      quantity: autoQuantity,
+    })
+  }
+
+  return transfers
 }
 
 export function TradePanel() {
@@ -284,6 +393,16 @@ export function TradePanel() {
   const rowById = useMemo(() => {
     return new Map(rows.map((row) => [row.itemId, row]))
   }, [rows])
+  const playerItemById = useMemo(() => {
+    return new Map(playerItems.map((item) => [item.id, item]))
+  }, [playerItems])
+  const targetItemById = useMemo(() => {
+    return new Map(targetItems.map((item) => [item.id, item]))
+  }, [targetItems])
+  const itemNameById = useMemo(() => {
+    const itemNameEntries = [...playerItems, ...targetItems].map((item) => [item.id, item.name] as const)
+    return new Map(itemNameEntries)
+  }, [playerItems, targetItems])
   const validation = useMemo(() => {
     if (!selectedTarget) {
       return {
@@ -291,6 +410,11 @@ export function TradePanel() {
         reason: "请选择交易对象。",
         offeredValue: 0,
         requestedValue: 0,
+        resolvedPlayerOfferSelection: EMPTY_SELECTION,
+        resolvedTargetOfferSelection: EMPTY_SELECTION,
+        settlementDelta: 0,
+        settlementExact: true,
+        settlementNote: null,
       }
     }
 
@@ -309,6 +433,41 @@ export function TradePanel() {
     targetItems,
     targetOfferSelection,
   ])
+  const offeredNonCurrencyValue = useMemo(() => {
+    return sumNonCurrencySelectionValue(playerItems, playerOfferSelection)
+  }, [playerItems, playerOfferSelection])
+  const requestedNonCurrencyValue = useMemo(() => {
+    return sumNonCurrencySelectionValue(targetItems, targetOfferSelection)
+  }, [targetItems, targetOfferSelection])
+  const netNonCurrencyValue = useMemo(() => {
+    return offeredNonCurrencyValue - requestedNonCurrencyValue
+  }, [offeredNonCurrencyValue, requestedNonCurrencyValue])
+  const autoCurrencyGivenPreview = useMemo(() => {
+    return resolveAutoCurrencyTransfersPreview({
+      inventory: playerItems,
+      manualSelection: playerOfferSelection,
+      resolvedSelection: validation.resolvedPlayerOfferSelection,
+    })
+  }, [playerItems, playerOfferSelection, validation.resolvedPlayerOfferSelection])
+  const autoCurrencyReceivedPreview = useMemo(() => {
+    return resolveAutoCurrencyTransfersPreview({
+      inventory: targetItems,
+      manualSelection: targetOfferSelection,
+      resolvedSelection: validation.resolvedTargetOfferSelection,
+    })
+  }, [targetItems, targetOfferSelection, validation.resolvedTargetOfferSelection])
+  const autoCurrencyPaidValue = useMemo(() => {
+    return sumTransferValue(autoCurrencyGivenPreview, playerItemById)
+  }, [autoCurrencyGivenPreview, playerItemById])
+  const autoCurrencyIncomeValue = useMemo(() => {
+    return sumTransferValue(autoCurrencyReceivedPreview, targetItemById)
+  }, [autoCurrencyReceivedPreview, targetItemById])
+  const autoCurrencyPaidEntries = useMemo(() => {
+    return formatTransferEntries(autoCurrencyGivenPreview, itemNameById)
+  }, [autoCurrencyGivenPreview, itemNameById])
+  const autoCurrencyIncomeEntries = useMemo(() => {
+    return formatTransferEntries(autoCurrencyReceivedPreview, itemNameById)
+  }, [autoCurrencyReceivedPreview, itemNameById])
 
   const handleTargetTypeChange = (value: string) => {
     const nextType = value as TradeTargetType
@@ -360,8 +519,16 @@ export function TradePanel() {
       return
     }
 
+    const autoPaid = formatTransferEntries(result.autoPlayerCurrencyGiven, itemNameById)
+    const autoChanged = formatTransferEntries(result.autoPlayerCurrencyReceived, itemNameById)
+    const autoPaidValue = sumTransferValue(result.autoPlayerCurrencyGiven, playerItemById)
+    const autoChangedValue = sumTransferValue(result.autoPlayerCurrencyReceived, targetItemById)
+    const settlementSummary = result.settlementExact
+      ? "已精确结算。"
+      : `采用最接近结算，差额+${result.settlementDelta}。`
+
     setTradeMessage(
-      `交易成功：提供总值${result.offeredValue}，购入总值${result.requestedValue}。超额部分不找零。`
+      `交易成功：我售出总价值${offeredNonCurrencyValue}，我购入总价值${requestedNonCurrencyValue}，净值(售出-购入)${netNonCurrencyValue}。货币支出总额${autoPaidValue}（${autoPaid}）；货币收入总额${autoChangedValue}（${autoChanged}）；${settlementSummary}`
     )
     setNetSelectionByTarget((prev) => ({
       ...prev,
@@ -418,7 +585,7 @@ export function TradePanel() {
             对方拒绝卖出: {formatBlockedCategories(restrictions.blockedSellToPlayer)}
           </p>
           <p className="text-muted-foreground text-xs">
-            货币与贵金属始终可交易；交易要求玩家提供总价值大于等于购买总价值，且不找零。
+            货币不进入交易列表；提交后系统会自动使用货币结算与找零，并提示最终差额。
           </p>
         </CardContent>
       </Card>
@@ -445,12 +612,15 @@ export function TradePanel() {
                 {rows.map((row) => {
                   const disableDecrease = row.blockedBuyFromPlayer || row.netQuantity <= row.minNet
                   const disableIncrease = row.blockedSellToPlayer || row.netQuantity >= row.maxNet
+                  const strikeClassName = row.deprioritized
+                    ? "line-through text-muted-foreground"
+                    : ""
 
                   return (
                     <TableRow key={row.itemId}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">{row.name}</span>
+                          <span className={`font-medium ${strikeClassName}`}>{row.name}</span>
                           {row.blockedBuyFromPlayer ? (
                             <Badge variant="secondary">对方拒收</Badge>
                           ) : null}
@@ -460,7 +630,7 @@ export function TradePanel() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{row.value}</TableCell>
-                      <TableCell className="text-right tabular-nums">
+                      <TableCell className={`text-right tabular-nums ${strikeClassName}`}>
                         {row.targetQuantity}
                       </TableCell>
                       <TableCell>
@@ -493,7 +663,7 @@ export function TradePanel() {
                           </Button>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">
+                      <TableCell className={`text-right tabular-nums ${strikeClassName}`}>
                         {row.playerQuantity}
                       </TableCell>
                     </TableRow>
@@ -510,10 +680,24 @@ export function TradePanel() {
           <CardTitle>结算</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <p>玩家提供总价值: {validation.offeredValue}</p>
-          <p>玩家购买总价值: {validation.requestedValue}</p>
+          <p>我售出总价值: {offeredNonCurrencyValue}</p>
+          <p>我购入总价值: {requestedNonCurrencyValue}</p>
+          <p>净值: {netNonCurrencyValue}</p>
+          <p>
+            货币支出总额: {autoCurrencyPaidValue}
+            <span className="text-muted-foreground text-sm">（{autoCurrencyPaidEntries}）</span>
+          </p>
+          <p>
+            货币收入总额: {autoCurrencyIncomeValue}
+            <span className="text-muted-foreground text-sm">（{autoCurrencyIncomeEntries}）</span>
+          </p>
+          <p>结算差额: {validation.settlementDelta}</p>
           {validation.ok ? (
-            <p className="text-muted-foreground">当前交易满足价值条件，可提交。</p>
+            <p className="text-muted-foreground">
+              {validation.settlementExact
+                ? "当前交易可精确结算，可提交。"
+                : validation.settlementNote ?? `当前交易为最接近结算，差额+${validation.settlementDelta}。`}
+            </p>
           ) : (
             <p className="text-destructive">{validation.reason}</p>
           )}

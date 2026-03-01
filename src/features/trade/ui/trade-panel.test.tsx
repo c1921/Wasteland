@@ -22,6 +22,14 @@ const mockData = vi.hoisted(() => ({
       value: 140,
       quantity: 1,
     },
+    {
+      id: "currency-a-20",
+      name: "A币-20元",
+      category: "currency",
+      weight: 0.001,
+      value: 20,
+      quantity: 2,
+    },
   ],
   targetItems: [
     {
@@ -38,6 +46,14 @@ const mockData = vi.hoisted(() => ({
       category: "medicine",
       weight: 0.2,
       value: 58,
+      quantity: 3,
+    },
+    {
+      id: "currency-a-10",
+      name: "A币-10元",
+      category: "currency",
+      weight: 0.001,
+      value: 10,
       quantity: 3,
     },
   ],
@@ -86,6 +102,10 @@ describe("TradePanel", () => {
       requestedValue: 0,
       playerGiven: [{ itemId: "weapon-1", quantity: 1 }],
       playerReceived: [],
+      settlementDelta: 5,
+      settlementExact: false,
+      autoPlayerCurrencyGiven: [{ itemId: "currency-a-20", quantity: 1 }],
+      autoPlayerCurrencyReceived: [{ itemId: "currency-a-10", quantity: 1 }],
     })
   })
 
@@ -102,6 +122,13 @@ describe("TradePanel", () => {
     expect(screen.getByRole("button", { name: "确认交易" })).toBeTruthy()
   })
 
+  it("hides currency rows from trade list", () => {
+    render(<TradePanel />)
+
+    expect(screen.queryByText("A币-20元")).toBeNull()
+    expect(screen.queryByText("A币-10元")).toBeNull()
+  })
+
   it("increases net quantity and caps at target quantity", () => {
     render(<TradePanel />)
 
@@ -109,7 +136,7 @@ describe("TradePanel", () => {
     fireEvent.click(increaseWeapon)
 
     expect(screen.getByTestId("trade-net-weapon-1").textContent).toBe("+1")
-    expect(screen.getByText("玩家购买总价值: 130")).toBeTruthy()
+    expect(screen.getByText("我购入总价值: 130")).toBeTruthy()
     expect(screen.getByRole("button", { name: "增加铁管步枪" }).getAttribute("disabled")).not.toBeNull()
   })
 
@@ -121,9 +148,28 @@ describe("TradePanel", () => {
     fireEvent.click(decreaseWeapon)
 
     expect(screen.getByTestId("trade-net-weapon-1").textContent).toBe("-2")
-    expect(screen.getByText("玩家提供总价值: 260")).toBeTruthy()
+    expect(screen.getByText("我售出总价值: 260")).toBeTruthy()
+    expect(screen.getByText("净值(售出-购入): 260")).toBeTruthy()
     expect(screen.getByRole("button", { name: "减少铁管步枪" }).getAttribute("disabled")).not.toBeNull()
     expect(screen.getByRole("button", { name: "确认交易" }).getAttribute("disabled")).toBeNull()
+  })
+
+  it("shows auto currency income and expense preview in settlement before submit", () => {
+    render(<TradePanel />)
+
+    fireEvent.click(screen.getByRole("button", { name: "减少铁管步枪" }))
+
+    expect(screen.getByText("净值(售出-购入): 130")).toBeTruthy()
+    expect(
+      screen.getByText((_, element) => {
+        return element?.textContent === "货币支出总额: 0（无）"
+      })
+    ).toBeTruthy()
+    expect(
+      screen.getByText((_, element) => {
+        return element?.textContent === "货币收入总额: 30（A币-10元x3）"
+      })
+    ).toBeTruthy()
   })
 
   it("disables forbidden buy/sell directions by category", () => {
@@ -131,6 +177,15 @@ describe("TradePanel", () => {
 
     expect(screen.getByRole("button", { name: "增加止血注射剂" }).getAttribute("disabled")).not.toBeNull()
     expect(screen.getByRole("button", { name: "减少多功能工具包" }).getAttribute("disabled")).not.toBeNull()
+  })
+
+  it("moves literal-rule rows to bottom with strikethrough", () => {
+    render(<TradePanel />)
+
+    const rows = screen.getAllByRole("row")
+    expect(rows[1]?.textContent).toContain("铁管步枪")
+    expect(screen.getByText("多功能工具包").className).toContain("line-through")
+    expect(screen.getByText("止血注射剂").className).toContain("line-through")
   })
 
   it("resets net selection after successful trade", () => {
@@ -146,7 +201,9 @@ describe("TradePanel", () => {
       targetOfferSelection: {},
     })
     expect(
-      screen.getByText("交易成功：提供总值130，购入总值0。超额部分不找零。")
+      screen.getByText(
+        "交易成功：我售出总价值130，我购入总价值0，净值(售出-购入)130。货币支出总额20（A币-20元x1）；货币收入总额10（A币-10元x1）；采用最接近结算，差额+5。"
+      )
     ).toBeTruthy()
     expect(screen.getByTestId("trade-net-weapon-1").textContent).toBe("0")
   })

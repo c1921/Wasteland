@@ -5,7 +5,7 @@ import {
   replaceInventoryByOwner,
   type InventoryOwnerRef,
 } from "@/features/items/data/session-inventories"
-import { Item } from "@/features/items/types"
+import { Item, ItemCategory } from "@/features/items/types"
 import { validateTrade } from "@/features/trade/lib/engine"
 import type {
   TradeExecutionResult,
@@ -36,6 +36,45 @@ function normalizeSelection(selection: TradeSideSelection): TradeTransferItem[] 
       quantity,
     }))
     .filter((entry) => entry.quantity > 0)
+}
+
+function resolveAutoCurrencyTransfers({
+  inventory,
+  manualSelection,
+  resolvedSelection,
+}: {
+  inventory: Item[]
+  manualSelection: TradeSideSelection
+  resolvedSelection: TradeSideSelection
+}): TradeTransferItem[] {
+  const itemMap = new Map(inventory.map((item) => [item.id, item]))
+  const transfers: TradeTransferItem[] = []
+
+  for (const [itemId, resolvedQuantity] of Object.entries(resolvedSelection)) {
+    if (resolvedQuantity <= 0) {
+      continue
+    }
+
+    const manualQuantity = manualSelection[itemId] ?? 0
+    const autoQuantity = resolvedQuantity - manualQuantity
+
+    if (autoQuantity <= 0) {
+      continue
+    }
+
+    const item = itemMap.get(itemId)
+
+    if (!item || item.category !== ItemCategory.Currency) {
+      continue
+    }
+
+    transfers.push({
+      itemId,
+      quantity: autoQuantity,
+    })
+  }
+
+  return transfers
 }
 
 function subtractItems(inventory: Item[], selection: TradeTransferItem[]) {
@@ -132,8 +171,20 @@ export function applySessionTrade({
     }
   }
 
-  const playerGiven = normalizeSelection(playerOfferSelection)
-  const playerReceived = normalizeSelection(targetOfferSelection)
+  const resolvedPlayerOfferSelection = validation.resolvedPlayerOfferSelection
+  const resolvedTargetOfferSelection = validation.resolvedTargetOfferSelection
+  const playerGiven = normalizeSelection(resolvedPlayerOfferSelection)
+  const playerReceived = normalizeSelection(resolvedTargetOfferSelection)
+  const autoPlayerCurrencyGiven = resolveAutoCurrencyTransfers({
+    inventory: playerInventory,
+    manualSelection: playerOfferSelection,
+    resolvedSelection: resolvedPlayerOfferSelection,
+  })
+  const autoPlayerCurrencyReceived = resolveAutoCurrencyTransfers({
+    inventory: targetInventory,
+    manualSelection: targetOfferSelection,
+    resolvedSelection: resolvedTargetOfferSelection,
+  })
   const nextPlayerInventory = addItems(
     subtractItems(playerInventory, playerGiven),
     targetInventory,
@@ -154,5 +205,9 @@ export function applySessionTrade({
     requestedValue: validation.requestedValue,
     playerGiven,
     playerReceived,
+    settlementDelta: validation.settlementDelta,
+    settlementExact: validation.settlementExact,
+    autoPlayerCurrencyGiven,
+    autoPlayerCurrencyReceived,
   }
 }

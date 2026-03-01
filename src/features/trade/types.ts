@@ -22,6 +22,11 @@ export type TradeValidationResult = {
   reason: string | null
   offeredValue: number
   requestedValue: number
+  resolvedPlayerOfferSelection: TradeSideSelection
+  resolvedTargetOfferSelection: TradeSideSelection
+  settlementDelta: number
+  settlementExact: boolean
+  settlementNote: string | null
 }
 
 export type TradeTransferItem = {
@@ -36,6 +41,10 @@ export type TradeExecutionResult =
       requestedValue: number
       playerGiven: TradeTransferItem[]
       playerReceived: TradeTransferItem[]
+      settlementDelta: number
+      settlementExact: boolean
+      autoPlayerCurrencyGiven: TradeTransferItem[]
+      autoPlayerCurrencyReceived: TradeTransferItem[]
     }
   | {
       ok: false
