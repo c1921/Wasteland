@@ -64,7 +64,7 @@ export function SettingsPanel() {
   } = useTheme()
 
   return (
-    <PanelShell title="设置" description="调整视觉主题和基础偏好。">
+    <PanelShell>
       <Card size="sm">
         <CardHeader>
           <CardTitle>主题</CardTitle>

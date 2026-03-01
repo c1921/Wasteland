@@ -9,7 +9,7 @@ import { PanelShell } from "@/shared/ui/panel-shell"
 
 export function BasePanel() {
   return (
-    <PanelShell title="基地" description="查看基地设施、生产和防御状态。">
+    <PanelShell>
       <Card size="sm">
         <CardHeader>
           <CardTitle>设施面板</CardTitle>

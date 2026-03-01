@@ -9,7 +9,7 @@ import { PanelShell } from "@/shared/ui/panel-shell"
 
 export function EventsPanel() {
   return (
-    <PanelShell title="事件" description="汇总任务、遭遇、天气和阵营动态。">
+    <PanelShell>
       <Card size="sm">
         <CardHeader>
           <CardTitle>事件时间线</CardTitle>

@@ -14,12 +14,7 @@ export function SidebarNav({ items, activeNav, onChange }: SidebarNavProps) {
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 flex w-14 flex-col border-r bg-sidebar text-sidebar-foreground">
-      <div className="flex h-14 items-center justify-center border-b">
-        <span className="rounded-md bg-sidebar-primary px-2 py-1 text-xs font-semibold text-sidebar-primary-foreground">
-          W
-        </span>
-      </div>
-      <nav className="flex flex-1 flex-col justify-between py-3">
+      <nav className="flex flex-1 flex-col justify-between pt-11 pb-3">
         <div className="flex flex-col items-center gap-2">
           {topItems.map((item) => {
             const Icon = item.icon

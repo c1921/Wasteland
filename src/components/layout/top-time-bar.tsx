@@ -6,16 +6,15 @@ export function TopTimeBar() {
   const { formattedDateTime, isPaused, speed, setSpeed, togglePause } = useGameClock()
 
   return (
-    <div className="border-b bg-background/90 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/75 md:px-4">
+    <div className="border-b bg-background/90 px-3 backdrop-blur supports-backdrop-filter:bg-background/75 md:px-4">
       <div className="flex h-11 items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">时间</span>
-          <span className="text-sm font-medium tabular-nums">{formattedDateTime}</span>
-        </div>
+        <span className="text-sm font-medium tabular-nums">
+          {formattedDateTime}
+        </span>
         <div className="flex items-center gap-1">
           <Button
             type="button"
-            size="xs"
+            size="default"
             variant={isPaused ? "secondary" : "outline"}
             aria-pressed={isPaused}
             onClick={togglePause}
@@ -26,7 +25,7 @@ export function TopTimeBar() {
             <Button
               key={option}
               type="button"
-              size="xs"
+              size="default"
               variant={speed === option ? "secondary" : "outline"}
               aria-pressed={speed === option}
               onClick={() => setSpeed(option)}
@@ -37,5 +36,5 @@ export function TopTimeBar() {
         </div>
       </div>
     </div>
-  )
+  );
 }

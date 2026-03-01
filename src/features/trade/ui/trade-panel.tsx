@@ -537,7 +537,7 @@ export function TradePanel() {
   }
 
   return (
-    <PanelShell title="交易" description="与地点或NPC队伍进行双向交易。">
+    <PanelShell>
       <Card size="sm">
         <CardHeader>
           <CardTitle>交易对象</CardTitle>

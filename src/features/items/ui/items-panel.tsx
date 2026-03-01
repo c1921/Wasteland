@@ -62,7 +62,7 @@ export function ItemsPanel() {
   }, [])
 
   return (
-    <PanelShell title="物品" description="管理地点、队伍和NPC队伍库存。">
+    <PanelShell>
       <Card size="sm">
         <CardHeader>
           <CardTitle>玩家队伍库存</CardTitle>

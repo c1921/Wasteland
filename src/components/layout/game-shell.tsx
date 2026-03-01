@@ -47,16 +47,6 @@ export function GameShell() {
         <main className={isMapPage ? "ml-14 flex h-screen flex-col overflow-hidden" : "ml-14 flex min-h-screen flex-col"}>
           <TopTimeBar />
           <div className={isMapPage ? "min-h-0 flex-1" : "min-h-0 flex-1 p-4 md:p-6"}>
-            {isMapPage ? null : (
-              <header className="mb-6 flex items-center justify-between border-b pb-3">
-                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                  Wasteland Control
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  当前面板: {NAV_TITLE_MAP[activeNav]}
-                </p>
-              </header>
-            )}
             <ActivePanel activeNav={activeNav} />
           </div>
         </main>

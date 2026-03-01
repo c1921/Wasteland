@@ -9,7 +9,7 @@ import { PanelShell } from "@/shared/ui/panel-shell"
 
 export function BattlePanel() {
   return (
-    <PanelShell title="战斗" description="战斗预览、行动序列和战报入口。">
+    <PanelShell>
       <Card size="sm">
         <CardHeader>
           <CardTitle>战斗准备</CardTitle>

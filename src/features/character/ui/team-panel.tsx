@@ -8,7 +8,7 @@ export function TeamPanel() {
   const characters = useMemo(() => getCharacters(), [])
 
   return (
-    <PanelShell title="队伍" description="查看队伍成员的基础信息与作战能力。">
+    <PanelShell>
       <CharacterRoster characters={characters} />
     </PanelShell>
   )
