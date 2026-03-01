@@ -87,14 +87,26 @@ export function useAutoBattle(encounter: BattleEncounterRef | null) {
   useEffect(() => {
     encounterRef.current = encounter
     const resolved = resolveEncounterBattleState(encounter)
-    stateRef.current = resolved.state
-    setState(resolved.state)
-    setUnavailableReason(resolved.unavailableReason)
-    setOutcomeSummary(null)
-    outcomeAppliedRef.current = false
-    setIsRunning(false)
-    accumulatorRef.current = 0
-    lastTimestampRef.current = null
+    let cancelled = false
+
+    queueMicrotask(() => {
+      if (cancelled) {
+        return
+      }
+
+      stateRef.current = resolved.state
+      setState(resolved.state)
+      setUnavailableReason(resolved.unavailableReason)
+      setOutcomeSummary(null)
+      outcomeAppliedRef.current = false
+      setIsRunning(false)
+      accumulatorRef.current = 0
+      lastTimestampRef.current = null
+    })
+
+    return () => {
+      cancelled = true
+    }
   }, [encounter])
 
   const stopBattle = useCallback(() => {

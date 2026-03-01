@@ -7,11 +7,15 @@ const pixiMock = vi.hoisted(() => {
   }
 
   class MockCircle {
-    constructor(
-      public x: number,
-      public y: number,
-      public radius: number
-    ) {}
+    x: number
+    y: number
+    radius: number
+
+    constructor(x: number, y: number, radius: number) {
+      this.x = x
+      this.y = y
+      this.radius = radius
+    }
   }
 
   class MockGraphics {
