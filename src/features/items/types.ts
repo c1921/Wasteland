@@ -6,6 +6,8 @@ export const ItemCategory = {
   Tool: "tool",
   Material: "material",
   Medicine: "medicine",
+  PreciousMetal: "precious-metal",
+  Currency: "currency",
 } as const
 
 export type ItemCategory = (typeof ItemCategory)[keyof typeof ItemCategory]
@@ -18,6 +20,8 @@ export const ITEM_CATEGORY_LABEL: Record<ItemCategory, string> = {
   [ItemCategory.Tool]: "工具",
   [ItemCategory.Material]: "材料",
   [ItemCategory.Medicine]: "药物",
+  [ItemCategory.PreciousMetal]: "贵金属",
+  [ItemCategory.Currency]: "货币",
 }
 
 export type ItemProfile = {

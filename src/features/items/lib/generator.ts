@@ -14,6 +14,8 @@ export const DEFAULT_QUANTITY_RULES: QuantityRule = {
   [ItemCategory.Tool]: { min: 1, max: 3 },
   [ItemCategory.Material]: { min: 1, max: 6 },
   [ItemCategory.Medicine]: { min: 1, max: 6 },
+  [ItemCategory.PreciousMetal]: { min: 1, max: 3 },
+  [ItemCategory.Currency]: { min: 1, max: 20 },
 }
 
 export type GenerateRandomItemsOptions = {
