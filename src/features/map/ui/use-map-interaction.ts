@@ -27,6 +27,7 @@ const SQUAD_ACTIONS: MapInteractionAction[] = [
   { id: "squad-observe", label: "观察" },
   { id: "squad-follow", label: "标记跟随" },
   { id: "squad-trade", label: "交易" },
+  { id: "squad-engage", label: "发起战斗" },
 ]
 
 function isNodeAction(actionId: MapInteractionActionId) {
@@ -43,7 +44,8 @@ function isSquadAction(actionId: MapInteractionActionId) {
     actionId === "squad-talk" ||
     actionId === "squad-observe" ||
     actionId === "squad-follow" ||
-    actionId === "squad-trade"
+    actionId === "squad-trade" ||
+    actionId === "squad-engage"
   )
 }
 
@@ -75,6 +77,8 @@ function resolveSquadMessage(
       return `已将${squad.name}标记为关注目标。`
     case "squad-trade":
       return `已发起与${squad.name}的交易交互。`
+    case "squad-engage":
+      return `你已对${squad.name}发起战斗。`
     default:
       return null
   }
@@ -84,10 +88,12 @@ export function useMapInteraction({
   selectedNode,
   selectedSquad,
   onTradeRequested,
+  onBattleRequested,
 }: {
   selectedNode: MapNode | null
   selectedSquad: NpcSquadSnapshot | null
   onTradeRequested?: (target: TradeTargetRef) => void
+  onBattleRequested?: (payload: { squadId: string; squadName: string }) => void
 }) {
   const [sessionState, setSessionState] = useState<MapSessionInteractionState>({
     focusedSquadId: null,
@@ -206,8 +212,15 @@ export function useMapInteraction({
           name: selectedSquad.name,
         })
       }
+
+      if (actionId === "squad-engage") {
+        onBattleRequested?.({
+          squadId: selectedSquad.id,
+          squadName: selectedSquad.name,
+        })
+      }
     },
-    [onTradeRequested, selectedNode, selectedSquad, target]
+    [onBattleRequested, onTradeRequested, selectedNode, selectedSquad, target]
   )
 
   return {

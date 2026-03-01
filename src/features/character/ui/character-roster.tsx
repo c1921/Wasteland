@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import type { CharacterCombatState } from "@/features/character/data/session-combat-state"
 import {
   type Character,
   type CharacterAbilities,
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils"
 
 type CharacterRosterProps = {
   characters: Character[]
+  combatStates?: Record<string, CharacterCombatState>
 }
 
 const genderLabelMap: Record<Gender, string> = {
@@ -52,7 +54,19 @@ function clampSkill(value: number) {
   return Math.max(0, Math.min(20, value))
 }
 
-export function CharacterRoster({ characters }: CharacterRosterProps) {
+function resolveCombatStatusLabel(combatState: CharacterCombatState | null) {
+  if (!combatState || !combatState.alive) {
+    return "阵亡"
+  }
+
+  if (combatState.routing) {
+    return "溃退"
+  }
+
+  return "正常"
+}
+
+export function CharacterRoster({ characters, combatStates }: CharacterRosterProps) {
   const [selectedId, setSelectedId] = useState<string | null>(
     characters[0]?.id ?? null
   )
@@ -81,6 +95,9 @@ export function CharacterRoster({ characters }: CharacterRosterProps) {
   if (!selectedCharacter) {
     return null
   }
+
+  const selectedCombatState = combatStates?.[selectedCharacter.id] ?? null
+  const combatStatus = resolveCombatStatusLabel(selectedCombatState)
 
   return (
     <div className="grid gap-3 lg:grid-cols-[15rem_1fr]">
@@ -168,6 +185,25 @@ export function CharacterRoster({ characters }: CharacterRosterProps) {
                 )
               })}
             </div>
+          </section>
+
+          <Separator />
+
+          <section className="space-y-1 text-sm">
+            <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              战斗状态
+            </h3>
+            {selectedCombatState ? (
+              <>
+                <p>
+                  HP: {Math.round(selectedCombatState.hp)}/{selectedCombatState.maxHp}
+                </p>
+                <p>士气: {Math.round(selectedCombatState.morale)}</p>
+                <p>状态: {combatStatus}</p>
+              </>
+            ) : (
+              <p className="text-muted-foreground">暂无战斗状态。</p>
+            )}
           </section>
         </CardContent>
       </Card>

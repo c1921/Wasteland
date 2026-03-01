@@ -15,17 +15,35 @@ import { SidebarNav } from "@/components/layout/sidebar-nav"
 import { TopTimeBar } from "@/components/layout/top-time-bar"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
+  BattleNavigationProvider,
+} from "@/features/battle/ui/battle-navigation-context"
+import type { BattleEncounterRef } from "@/features/battle/types"
+import {
   TradeNavigationProvider,
 } from "@/features/trade/ui/trade-navigation-context"
 import type { TradeTargetRef } from "@/features/trade/types"
 
 export function GameShell() {
   const [activeNav, setActiveNav] = useState<NavKey>("map")
+  const [selectedBattleEncounter, setSelectedBattleEncounter] =
+    useState<BattleEncounterRef | null>(null)
   const [selectedTradeTarget, setSelectedTradeTarget] = useState<TradeTargetRef | null>(null)
+  const requestOpenBattle = useCallback((encounter: BattleEncounterRef) => {
+    setSelectedBattleEncounter(encounter)
+    setActiveNav("battle")
+  }, [])
   const requestOpenTrade = useCallback((target: TradeTargetRef | null) => {
     setSelectedTradeTarget(target)
     setActiveNav("trade")
   }, [])
+  const battleNavigationContextValue = useMemo(
+    () => ({
+      selectedEncounter: selectedBattleEncounter,
+      setSelectedEncounter: setSelectedBattleEncounter,
+      requestOpenBattle,
+    }),
+    [requestOpenBattle, selectedBattleEncounter]
+  )
   const tradeNavigationContextValue = useMemo(
     () => ({
       selectedTarget: selectedTradeTarget,
@@ -37,32 +55,34 @@ export function GameShell() {
   const isMapPage = activeNav === "map"
 
   return (
-    <TradeNavigationProvider value={tradeNavigationContextValue}>
-      <div className="min-h-screen bg-background text-foreground">
-        <SidebarNav
-          items={NAV_ITEMS}
-          activeNav={activeNav}
-          onChange={setActiveNav}
-        />
-        <main
-          className={
-            isMapPage
-              ? "ml-10 md:ml-14 flex h-screen flex-col overflow-hidden"
-              : "ml-10 md:ml-14 flex min-h-screen flex-col"
-          }
-        >
-          <TopTimeBar />
-          <div
+    <BattleNavigationProvider value={battleNavigationContextValue}>
+      <TradeNavigationProvider value={tradeNavigationContextValue}>
+        <div className="min-h-screen bg-background text-foreground">
+          <SidebarNav
+            items={NAV_ITEMS}
+            activeNav={activeNav}
+            onChange={setActiveNav}
+          />
+          <main
             className={
-              isMapPage ? "min-h-0 flex-1" : "min-h-0 flex-1 p-2 md:p-6"
+              isMapPage
+                ? "ml-10 md:ml-14 flex h-screen flex-col overflow-hidden"
+                : "ml-10 md:ml-14 flex min-h-screen flex-col"
             }
           >
-            <ActivePanel activeNav={activeNav} />
-          </div>
-        </main>
-      </div>
-    </TradeNavigationProvider>
-  );
+            <TopTimeBar />
+            <div
+              className={
+                isMapPage ? "min-h-0 flex-1" : "min-h-0 flex-1 p-2 md:p-6"
+              }
+            >
+              <ActivePanel activeNav={activeNav} />
+            </div>
+          </main>
+        </div>
+      </TradeNavigationProvider>
+    </BattleNavigationProvider>
+  )
 }
 
 type ActivePanelProps = {

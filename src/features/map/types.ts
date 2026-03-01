@@ -59,6 +59,7 @@ export type MapInteractionActionId =
   | "squad-observe"
   | "squad-follow"
   | "squad-trade"
+  | "squad-engage"
 
 export type MapInteractionAction = {
   id: MapInteractionActionId

@@ -73,3 +73,14 @@ export type PhaseHandler = {
   tick: (state: BattleState) => BattleState
   exit: (state: BattleState) => BattleState
 }
+
+export type BattleEncounterRef = {
+  id: string
+  source: {
+    type: "map-npc-squad"
+    squadId: string
+    squadName: string
+  }
+  playerLabel: string
+  startedAt: number
+}

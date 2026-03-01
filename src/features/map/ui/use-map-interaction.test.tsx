@@ -36,10 +36,12 @@ function InteractionHarness({
   selectedNode,
   selectedSquad,
   onTradeRequested,
+  onBattleRequested,
 }: {
   selectedNode: MapNode | null
   selectedSquad: NpcSquadSnapshot | null
   onTradeRequested?: (target: TradeTargetRef) => void
+  onBattleRequested?: (payload: { squadId: string; squadName: string }) => void
 }) {
   const {
     availableActions,
@@ -51,6 +53,7 @@ function InteractionHarness({
     selectedNode,
     selectedSquad,
     onTradeRequested,
+    onBattleRequested,
   })
 
   return (
@@ -175,5 +178,25 @@ describe("useMapInteraction", () => {
       id: "squad-1",
       name: "灰狼巡逻组-1",
     })
+  })
+
+  it("emits battle payload when executing squad engage action", () => {
+    const battleSpy = vi.fn()
+    const squad = buildSquad("squad-9", "碎铁巡逻组-9", false)
+    render(
+      <InteractionHarness
+        selectedNode={null}
+        selectedSquad={squad}
+        onBattleRequested={battleSpy}
+      />
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "squad-engage" }))
+
+    expect(battleSpy).toHaveBeenCalledWith({
+      squadId: "squad-9",
+      squadName: "碎铁巡逻组-9",
+    })
+    expect(screen.getByText("你已对碎铁巡逻组-9发起战斗。")).toBeTruthy()
   })
 })

@@ -11,11 +11,40 @@ import {
   BATTLE_PHASE_LABELS,
   summarizeSquad,
 } from "@/features/battle/lib/engine"
+import { useBattleNavigation } from "@/features/battle/ui/battle-navigation-store"
 import { useAutoBattle } from "@/features/battle/hooks/use-auto-battle"
 import { PanelShell } from "@/shared/ui/panel-shell"
 
 export function BattlePanel() {
-  const { state, isRunning, startBattle, stopBattle, resetBattle } = useAutoBattle()
+  const { selectedEncounter } = useBattleNavigation()
+  const {
+    state,
+    unavailableReason,
+    outcomeSummary,
+    isRunning,
+    startBattle,
+    stopBattle,
+  } = useAutoBattle(selectedEncounter)
+
+  if (!state) {
+    return (
+      <PanelShell>
+        <Card size="sm">
+          <CardHeader>
+            <CardTitle>自动战斗</CardTitle>
+            <CardDescription>战斗已改为地图遭遇驱动，不再使用样本数据。</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p>{unavailableReason ?? "暂无可用遭遇。"}</p>
+            <p className="text-muted-foreground">
+              操作路径：地图面板 → 选择NPC队伍 → 点击“发起战斗”。
+            </p>
+          </CardContent>
+        </Card>
+      </PanelShell>
+    )
+  }
+
   const squadA = state.squads[0]
   const squadB = state.squads[1]
   const summaryA = summarizeSquad(squadA)
@@ -37,6 +66,20 @@ export function BattlePanel() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
+            {selectedEncounter ? (
+              <Card size="sm">
+                <CardHeader>
+                  <CardTitle>遭遇来源</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1 text-sm">
+                  <p>敌方队伍: {selectedEncounter.source.squadName}</p>
+                  <p>遭遇ID: {selectedEncounter.id}</p>
+                  <p>发起时间: {new Date(selectedEncounter.startedAt).toLocaleString()}</p>
+                  {outcomeSummary ? <p>结算: {outcomeSummary.message}</p> : null}
+                </CardContent>
+              </Card>
+            ) : null}
+
             <Card size="sm">
               <CardHeader>
                 <CardTitle>战场状态</CardTitle>
@@ -120,9 +163,6 @@ export function BattlePanel() {
             disabled={!isRunning}
           >
             停止
-          </Button>
-          <Button type="button" variant="outline" onClick={resetBattle}>
-            重置
           </Button>
         </CardFooter>
       </Card>

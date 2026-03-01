@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { afterEach, describe, expect, it } from "vitest"
 
 import { CharacterRoster } from "@/features/character/ui/character-roster"
 import { Character, Gender } from "@/features/character/types"
@@ -58,6 +58,10 @@ const sampleCharacters = [
 ]
 
 describe("CharacterRoster", () => {
+  afterEach(() => {
+    cleanup()
+  })
+
   it("renders character list and default details", () => {
     render(<CharacterRoster characters={sampleCharacters} />)
 
@@ -83,5 +87,40 @@ describe("CharacterRoster", () => {
     render(<CharacterRoster characters={[]} />)
 
     expect(screen.getByText("暂无角色数据。")).toBeTruthy()
+  })
+
+  it("renders combat state when provided", () => {
+    render(
+      <CharacterRoster
+        characters={sampleCharacters}
+        combatStates={{
+          a: {
+            characterId: "a",
+            maxHp: 120,
+            hp: 88,
+            morale: 61,
+            alive: true,
+            routing: false,
+          },
+          b: {
+            characterId: "b",
+            maxHp: 140,
+            hp: 0,
+            morale: 20,
+            alive: false,
+            routing: true,
+          },
+        }}
+      />
+    )
+
+    expect(screen.getAllByText("战斗状态").length).toBeGreaterThan(0)
+    expect(screen.getByText("HP: 88/120")).toBeTruthy()
+    expect(screen.getByText("士气: 61")).toBeTruthy()
+    expect(screen.getByText("状态: 正常")).toBeTruthy()
+
+    const [target] = screen.getAllByRole("button", { name: /铁缄/ })
+    fireEvent.click(target)
+    expect(screen.getByText("状态: 阵亡")).toBeTruthy()
   })
 })

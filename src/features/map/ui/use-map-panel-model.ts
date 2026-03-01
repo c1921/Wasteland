@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react"
 
+import { useBattleNavigation } from "@/features/battle/ui/battle-navigation-store"
 import { getLocationInventoryMap, getNpcSquadInventoryMap } from "@/features/items/data/session-inventories"
 import { getNpcSquadTemplates } from "@/features/map/data/npc-squads"
 import {
@@ -53,12 +54,35 @@ export function useMapPanelModel() {
   const selectedCharacters = selectedNode ? locationCharacters[selectedNode.id] ?? [] : []
   const selectedNodeItems = selectedNode ? locationInventories[selectedNode.id] ?? [] : []
   const selectedSquadItems = selectedSquad ? squadInventories[selectedSquad.id] ?? [] : []
+  const { requestOpenBattle } = useBattleNavigation()
   const { requestOpenTrade } = useTradeNavigation()
   const handleTradeRequested = useCallback(
     (target: TradeTargetRef) => {
       requestOpenTrade(target)
     },
     [requestOpenTrade]
+  )
+  const handleBattleRequested = useCallback(
+    ({
+      squadId,
+      squadName,
+    }: {
+      squadId: string
+      squadName: string
+    }) => {
+      const now = Date.now()
+      requestOpenBattle({
+        id: `encounter-${squadId}-${now}`,
+        source: {
+          type: "map-npc-squad",
+          squadId,
+          squadName,
+        },
+        playerLabel: "玩家队伍",
+        startedAt: now,
+      })
+    },
+    [requestOpenBattle]
   )
   const {
     availableActions,
@@ -70,6 +94,7 @@ export function useMapPanelModel() {
     selectedNode,
     selectedSquad,
     onTradeRequested: handleTradeRequested,
+    onBattleRequested: handleBattleRequested,
   })
 
   const handleNodeSelect = (nodeId: string) => {
