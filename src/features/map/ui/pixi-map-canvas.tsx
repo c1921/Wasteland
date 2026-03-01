@@ -53,7 +53,6 @@ export function PixiMapCanvas({
         className
       )}
     >
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-20 bg-gradient-to-t from-black/35 to-transparent" />
       <div className="absolute top-3 right-3 z-20 flex items-center gap-2 rounded-md border border-border bg-card/90 px-2 py-1">
         <Button
           size="icon-xs"
@@ -80,9 +79,6 @@ export function PixiMapCanvas({
           {statusMessage}
         </div>
       ) : null}
-      <p className="pointer-events-none absolute left-3 bottom-2 z-20 text-[11px] text-slate-300/85">
-        左键拖拽地图 · 右键点击自动寻路 · 滚轮缩放
-      </p>
       {tooltip ? (
         <div
           className="pointer-events-none absolute z-30 w-[170px] rounded-md border border-white/15 bg-[#181d23]/95 px-3 py-2 text-[11px] leading-tight text-[#d7dbdf] shadow-[0_8px_24px_rgba(0,0,0,0.42)]"

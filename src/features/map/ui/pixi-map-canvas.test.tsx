@@ -82,6 +82,7 @@ describe("PixiMapCanvas UI", () => {
     const host = container.firstElementChild as HTMLElement
 
     expect(screen.getByText("62%")).toBeTruthy()
+    expect(screen.queryByText("左键拖拽地图 · 右键点击自动寻路 · 滚轮缩放")).toBeNull()
     expect(host.className).toContain("bg-background")
     expect(host.className).not.toContain("bg-[#0b0f14]")
 
