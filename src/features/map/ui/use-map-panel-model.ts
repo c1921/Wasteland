@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 
 import { getLocationInventoryMap, getNpcSquadInventoryMap } from "@/features/items/data/session-inventories"
 import { getNpcSquadTemplates } from "@/features/map/data/npc-squads"
@@ -12,7 +12,9 @@ import type {
   MapInteractionActionId,
   NpcSquadSnapshot,
 } from "@/features/map/types"
+import type { TradeTargetRef } from "@/features/trade/types"
 import { useMapInteraction } from "@/features/map/ui/use-map-interaction"
+import { useTradeNavigation } from "@/features/trade/ui/trade-navigation-store"
 
 type DetailsSelection =
   | { type: "node"; nodeId: string }
@@ -51,6 +53,13 @@ export function useMapPanelModel() {
   const selectedCharacters = selectedNode ? locationCharacters[selectedNode.id] ?? [] : []
   const selectedNodeItems = selectedNode ? locationInventories[selectedNode.id] ?? [] : []
   const selectedSquadItems = selectedSquad ? squadInventories[selectedSquad.id] ?? [] : []
+  const { requestOpenTrade } = useTradeNavigation()
+  const handleTradeRequested = useCallback(
+    (target: TradeTargetRef) => {
+      requestOpenTrade(target)
+    },
+    [requestOpenTrade]
+  )
   const {
     availableActions,
     interactionLogs,
@@ -60,6 +69,7 @@ export function useMapPanelModel() {
   } = useMapInteraction({
     selectedNode,
     selectedSquad,
+    onTradeRequested: handleTradeRequested,
   })
 
   const handleNodeSelect = (nodeId: string) => {

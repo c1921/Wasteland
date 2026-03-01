@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { generateCharacters } from "@/features/character/lib/generator"
 import { useMapInteraction } from "@/features/map/ui/use-map-interaction"
 import type { MapNode, NpcSquadSnapshot } from "@/features/map/types"
+import type { TradeTargetRef } from "@/features/trade/types"
 
 const nodeA: MapNode = {
   id: "ash-hub",
@@ -34,9 +35,11 @@ function buildSquad(id: string, name: string, moving = false): NpcSquadSnapshot 
 function InteractionHarness({
   selectedNode,
   selectedSquad,
+  onTradeRequested,
 }: {
   selectedNode: MapNode | null
   selectedSquad: NpcSquadSnapshot | null
+  onTradeRequested?: (target: TradeTargetRef) => void
 }) {
   const {
     availableActions,
@@ -47,6 +50,7 @@ function InteractionHarness({
   } = useMapInteraction({
     selectedNode,
     selectedSquad,
+    onTradeRequested,
   })
 
   return (
@@ -136,5 +140,40 @@ describe("useMapInteraction", () => {
     expect(screen.getByTestId("log-count").textContent).toBe("0")
 
     warnSpy.mockRestore()
+  })
+
+  it("emits trade target when executing trade actions", () => {
+    const tradeSpy = vi.fn()
+    const squad = buildSquad("squad-1", "灰狼巡逻组-1", false)
+    const { rerender } = render(
+      <InteractionHarness
+        selectedNode={nodeA}
+        selectedSquad={null}
+        onTradeRequested={tradeSpy}
+      />
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "node-trade" }))
+    expect(tradeSpy).toHaveBeenLastCalledWith({
+      type: "location",
+      id: "ash-hub",
+      name: "灰烬中枢",
+      kind: "settlement",
+    })
+
+    rerender(
+      <InteractionHarness
+        selectedNode={null}
+        selectedSquad={squad}
+        onTradeRequested={tradeSpy}
+      />
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "squad-trade" }))
+    expect(tradeSpy).toHaveBeenLastCalledWith({
+      type: "npc-squad",
+      id: "squad-1",
+      name: "灰狼巡逻组-1",
+    })
   })
 })

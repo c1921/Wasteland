@@ -2,6 +2,7 @@ import {
   Bell,
   Building2,
   Crosshair,
+  HandCoins,
   Map,
   Package,
   Settings,
@@ -17,6 +18,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "base", label: "基地", icon: Building2, dock: "top" },
   { key: "battle", label: "战斗", icon: Crosshair, dock: "top" },
   { key: "items", label: "物品", icon: Package, dock: "top" },
+  { key: "trade", label: "交易", icon: HandCoins, dock: "top" },
   { key: "settings", label: "设置", icon: Settings, dock: "bottom" },
 ]
 
@@ -27,5 +29,6 @@ export const NAV_TITLE_MAP: Record<NavKey, string> = {
   base: "基地",
   battle: "战斗",
   items: "物品",
+  trade: "交易",
   settings: "设置",
 }

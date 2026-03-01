@@ -1,5 +1,7 @@
 import {
   Suspense,
+  useCallback,
+  useMemo,
   useState,
 } from "react"
 
@@ -12,35 +14,54 @@ import type { NavKey } from "@/app/navigation/types"
 import { SidebarNav } from "@/components/layout/sidebar-nav"
 import { TopTimeBar } from "@/components/layout/top-time-bar"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  TradeNavigationProvider,
+} from "@/features/trade/ui/trade-navigation-context"
+import type { TradeTargetRef } from "@/features/trade/types"
 
 export function GameShell() {
   const [activeNav, setActiveNav] = useState<NavKey>("map")
+  const [selectedTradeTarget, setSelectedTradeTarget] = useState<TradeTargetRef | null>(null)
+  const requestOpenTrade = useCallback((target: TradeTargetRef | null) => {
+    setSelectedTradeTarget(target)
+    setActiveNav("trade")
+  }, [])
+  const tradeNavigationContextValue = useMemo(
+    () => ({
+      selectedTarget: selectedTradeTarget,
+      setSelectedTarget: setSelectedTradeTarget,
+      requestOpenTrade,
+    }),
+    [requestOpenTrade, selectedTradeTarget]
+  )
   const isMapPage = activeNav === "map"
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <SidebarNav
-        items={NAV_ITEMS}
-        activeNav={activeNav}
-        onChange={setActiveNav}
-      />
-      <main className={isMapPage ? "ml-14 flex h-screen flex-col overflow-hidden" : "ml-14 flex min-h-screen flex-col"}>
-        <TopTimeBar />
-        <div className={isMapPage ? "min-h-0 flex-1" : "min-h-0 flex-1 p-4 md:p-6"}>
-          {isMapPage ? null : (
-            <header className="mb-6 flex items-center justify-between border-b pb-3">
-              <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                Wasteland Control
-              </p>
-              <p className="text-xs text-muted-foreground">
-                当前面板: {NAV_TITLE_MAP[activeNav]}
-              </p>
-            </header>
-          )}
-          <ActivePanel activeNav={activeNav} />
-        </div>
-      </main>
-    </div>
+    <TradeNavigationProvider value={tradeNavigationContextValue}>
+      <div className="min-h-screen bg-background text-foreground">
+        <SidebarNav
+          items={NAV_ITEMS}
+          activeNav={activeNav}
+          onChange={setActiveNav}
+        />
+        <main className={isMapPage ? "ml-14 flex h-screen flex-col overflow-hidden" : "ml-14 flex min-h-screen flex-col"}>
+          <TopTimeBar />
+          <div className={isMapPage ? "min-h-0 flex-1" : "min-h-0 flex-1 p-4 md:p-6"}>
+            {isMapPage ? null : (
+              <header className="mb-6 flex items-center justify-between border-b pb-3">
+                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Wasteland Control
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  当前面板: {NAV_TITLE_MAP[activeNav]}
+                </p>
+              </header>
+            )}
+            <ActivePanel activeNav={activeNav} />
+          </div>
+        </main>
+      </div>
+    </TradeNavigationProvider>
   )
 }
 

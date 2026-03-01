@@ -7,6 +7,7 @@ export type NavKey =
   | "base"
   | "battle"
   | "items"
+  | "trade"
   | "settings"
 
 export type NavItem = {

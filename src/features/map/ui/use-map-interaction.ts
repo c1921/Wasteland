@@ -13,24 +13,28 @@ import type {
   MapSessionInteractionState,
   NpcSquadSnapshot,
 } from "@/features/map/types"
+import type { TradeTargetRef } from "@/features/trade/types"
 
 const NODE_ACTIONS: MapInteractionAction[] = [
   { id: "node-intel", label: "查看情报" },
   { id: "node-observe", label: "驻留观察" },
   { id: "node-resupply", label: "快速补给" },
+  { id: "node-trade", label: "交易" },
 ]
 
 const SQUAD_ACTIONS: MapInteractionAction[] = [
   { id: "squad-talk", label: "交谈" },
   { id: "squad-observe", label: "观察" },
   { id: "squad-follow", label: "标记跟随" },
+  { id: "squad-trade", label: "交易" },
 ]
 
 function isNodeAction(actionId: MapInteractionActionId) {
   return (
     actionId === "node-intel" ||
     actionId === "node-observe" ||
-    actionId === "node-resupply"
+    actionId === "node-resupply" ||
+    actionId === "node-trade"
   )
 }
 
@@ -38,7 +42,8 @@ function isSquadAction(actionId: MapInteractionActionId) {
   return (
     actionId === "squad-talk" ||
     actionId === "squad-observe" ||
-    actionId === "squad-follow"
+    actionId === "squad-follow" ||
+    actionId === "squad-trade"
   )
 }
 
@@ -50,6 +55,8 @@ function resolveNodeMessage(actionId: MapInteractionActionId, node: MapNode) {
       return `你在${node.name}完成驻留观察，记录了周边动向。`
     case "node-resupply":
       return `你在${node.name}完成快速补给。`
+    case "node-trade":
+      return `已发起与${node.name}的交易交互。`
     default:
       return null
   }
@@ -66,6 +73,8 @@ function resolveSquadMessage(
       return `${squad.name}当前${squad.moving ? "移动中" : "停留中"}，成员${squad.members.length}人。`
     case "squad-follow":
       return `已将${squad.name}标记为关注目标。`
+    case "squad-trade":
+      return `已发起与${squad.name}的交易交互。`
     default:
       return null
   }
@@ -74,9 +83,11 @@ function resolveSquadMessage(
 export function useMapInteraction({
   selectedNode,
   selectedSquad,
+  onTradeRequested,
 }: {
   selectedNode: MapNode | null
   selectedSquad: NpcSquadSnapshot | null
+  onTradeRequested?: (target: TradeTargetRef) => void
 }) {
   const [sessionState, setSessionState] = useState<MapSessionInteractionState>({
     focusedSquadId: null,
@@ -149,6 +160,16 @@ export function useMapInteraction({
             actionId === "node-resupply" ? selectedNode.id : prev.lastResupplyNodeId,
           logs: appendInteractionLog(prev.logs, entry),
         }))
+
+        if (actionId === "node-trade") {
+          onTradeRequested?.({
+            type: "location",
+            id: selectedNode.id,
+            name: selectedNode.name,
+            kind: selectedNode.kind,
+          })
+        }
+
         return
       }
 
@@ -177,8 +198,16 @@ export function useMapInteraction({
         lastResupplyNodeId: prev.lastResupplyNodeId,
         logs: appendInteractionLog(prev.logs, entry),
       }))
+
+      if (actionId === "squad-trade") {
+        onTradeRequested?.({
+          type: "npc-squad",
+          id: selectedSquad.id,
+          name: selectedSquad.name,
+        })
+      }
     },
-    [selectedNode, selectedSquad, target]
+    [onTradeRequested, selectedNode, selectedSquad, target]
   )
 
   return {

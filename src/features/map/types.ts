@@ -54,9 +54,11 @@ export type MapInteractionActionId =
   | "node-intel"
   | "node-observe"
   | "node-resupply"
+  | "node-trade"
   | "squad-talk"
   | "squad-observe"
   | "squad-follow"
+  | "squad-trade"
 
 export type MapInteractionAction = {
   id: MapInteractionActionId

@@ -21,6 +21,9 @@ const BattlePanel = lazy(async () => ({
 const ItemsPanel = lazy(async () => ({
   default: (await import("@/features/items/ui/items-panel")).ItemsPanel,
 }))
+const TradePanel = lazy(async () => ({
+  default: (await import("@/features/trade/ui/trade-panel")).TradePanel,
+}))
 const SettingsPanel = lazy(async () => ({
   default: (await import("@/features/settings/ui/settings-panel")).SettingsPanel,
 }))
@@ -32,5 +35,6 @@ export const PANEL_REGISTRY: Record<NavKey, ComponentType> = {
   base: BasePanel,
   battle: BattlePanel,
   items: ItemsPanel,
+  trade: TradePanel,
   settings: SettingsPanel,
 }
