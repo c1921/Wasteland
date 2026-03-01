@@ -1,3 +1,4 @@
+import { getGameSessionStore } from "@/engine/session/game-session-store"
 import { generateRandomItems } from "@/features/items/lib/generator"
 import { Item, type InventoryMap } from "@/features/items/types"
 
@@ -8,9 +9,9 @@ const LOCATION_COUNT_MAX = 8
 const NPC_SQUAD_COUNT_MIN = 3
 const NPC_SQUAD_COUNT_MAX = 7
 
-let sessionPlayerTeamInventory: Item[] | null = null
-const sessionLocationInventoryMap: InventoryMap = {}
-const sessionNpcSquadInventoryMap: InventoryMap = {}
+const SESSION_PLAYER_TEAM_INVENTORY_KEY = "items.player-team-inventory"
+const SESSION_LOCATION_INVENTORY_MAP_KEY = "items.location-inventory-map"
+const SESSION_NPC_SQUAD_INVENTORY_MAP_KEY = "items.npc-squad-inventory-map"
 
 export type InventoryOwnerRef =
   | { type: "player-team" }
@@ -86,10 +87,10 @@ function resolveTransferEntries(selection: TransferSelection) {
 
 function resolveTargetInventoryMap(owner: InventoryOwnerRef) {
   if (owner.type === "location") {
-    return sessionLocationInventoryMap
+    return getSessionLocationInventoryMap()
   }
 
-  return sessionNpcSquadInventoryMap
+  return getSessionNpcSquadInventoryMap()
 }
 
 function getTargetInventoryById(owner: Extract<InventoryOwnerRef, { id: string }>) {
@@ -116,8 +117,10 @@ function getMutableInventoryByOwner(owner: InventoryOwnerRef): Item[] {
 }
 
 function replaceInventoryByOwnerUnsafe(owner: InventoryOwnerRef, items: Item[]) {
+  const store = getGameSessionStore()
+
   if (owner.type === "player-team") {
-    sessionPlayerTeamInventory = items
+    store.set(SESSION_PLAYER_TEAM_INVENTORY_KEY, items)
     return
   }
 
@@ -226,14 +229,19 @@ function isSameInventoryOwner(source: InventoryOwnerRef, target: InventoryOwnerR
 }
 
 export function getPlayerTeamInventory() {
-  if (!sessionPlayerTeamInventory) {
-    sessionPlayerTeamInventory = generateRandomItems({
+  const store = getGameSessionStore()
+  const existing = store.get<Item[] | null>(SESSION_PLAYER_TEAM_INVENTORY_KEY)
+
+  if (!existing) {
+    const generated = generateRandomItems({
       countMin: PLAYER_TEAM_COUNT_MIN,
       countMax: PLAYER_TEAM_COUNT_MAX,
     })
+    store.set(SESSION_PLAYER_TEAM_INVENTORY_KEY, generated)
+    return generated
   }
 
-  return sessionPlayerTeamInventory
+  return existing
 }
 
 export function getLocationInventoryById(nodeId: string) {
@@ -251,6 +259,8 @@ export function getNpcSquadInventoryById(squadId: string) {
 }
 
 export function getLocationInventoryMap(nodeIds: string[]) {
+  const sessionLocationInventoryMap = getSessionLocationInventoryMap()
+
   for (const nodeId of nodeIds) {
     ensureInventory(
       sessionLocationInventoryMap,
@@ -264,6 +274,8 @@ export function getLocationInventoryMap(nodeIds: string[]) {
 }
 
 export function getNpcSquadInventoryMap(squadIds: string[]) {
+  const sessionNpcSquadInventoryMap = getSessionNpcSquadInventoryMap()
+
   for (const squadId of squadIds) {
     ensureInventory(
       sessionNpcSquadInventoryMap,
@@ -333,4 +345,32 @@ export function applyInventoryTransfer({
   return {
     ok: true,
   }
+}
+
+export function resetInventorySession() {
+  const store = getGameSessionStore()
+  store.delete(SESSION_PLAYER_TEAM_INVENTORY_KEY)
+  store.delete(SESSION_LOCATION_INVENTORY_MAP_KEY)
+  store.delete(SESSION_NPC_SQUAD_INVENTORY_MAP_KEY)
+}
+
+function getSessionLocationInventoryMap() {
+  return getSessionInventoryMap(SESSION_LOCATION_INVENTORY_MAP_KEY)
+}
+
+function getSessionNpcSquadInventoryMap() {
+  return getSessionInventoryMap(SESSION_NPC_SQUAD_INVENTORY_MAP_KEY)
+}
+
+function getSessionInventoryMap(key: string) {
+  const store = getGameSessionStore()
+  const existing = store.get<InventoryMap>(key)
+
+  if (existing) {
+    return existing
+  }
+
+  const created: InventoryMap = {}
+  store.set(key, created)
+  return created
 }

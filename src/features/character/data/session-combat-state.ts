@@ -1,3 +1,5 @@
+import { getGameSessionStore } from "@/engine/session/game-session-store"
+
 export type CharacterCombatState = {
   characterId: string
   maxHp: number
@@ -19,7 +21,7 @@ export type CharacterCombatStateUpdate = {
 const DEFAULT_MAX_HP = 100
 const DEFAULT_MORALE = 100
 
-const sessionCombatStateMap: Record<string, CharacterCombatState> = {}
+const SESSION_COMBAT_STATE_MAP_KEY = "character.combat-state-map"
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value))
@@ -56,6 +58,7 @@ function cloneState(state: CharacterCombatState): CharacterCombatState {
 }
 
 export function getCharacterCombatState(characterId: string) {
+  const sessionCombatStateMap = getPersistedCombatStateMap()
   const existing = sessionCombatStateMap[characterId]
 
   if (existing) {
@@ -83,6 +86,7 @@ export function getCombatStatesByCharacterIds(characterIds: string[]) {
 }
 
 export function getPersistedCombatStatesByCharacterIds(characterIds: string[]) {
+  const sessionCombatStateMap = getPersistedCombatStateMap()
   const result: Record<string, CharacterCombatState> = {}
 
   for (const characterId of characterIds) {
@@ -97,21 +101,47 @@ export function getPersistedCombatStatesByCharacterIds(characterIds: string[]) {
 }
 
 export function applyCharacterCombatResult(updates: CharacterCombatStateUpdate[]) {
+  const sessionCombatStateMap = getMutableCombatStateMap()
+
   for (const update of updates) {
     sessionCombatStateMap[update.characterId] = toSafeState(update)
   }
 }
 
 export function resetCharacterCombatState(characterIds?: string[]) {
-  if (!characterIds) {
-    for (const characterId of Object.keys(sessionCombatStateMap)) {
-      delete sessionCombatStateMap[characterId]
-    }
+  const store = getGameSessionStore()
+  const sessionCombatStateMap = store.get<Record<string, CharacterCombatState>>(
+    SESSION_COMBAT_STATE_MAP_KEY
+  )
 
+  if (!sessionCombatStateMap) {
+    return
+  }
+
+  if (!characterIds) {
+    store.delete(SESSION_COMBAT_STATE_MAP_KEY)
     return
   }
 
   for (const characterId of characterIds) {
     delete sessionCombatStateMap[characterId]
   }
+}
+
+function getPersistedCombatStateMap() {
+  const store = getGameSessionStore()
+  return store.get<Record<string, CharacterCombatState>>(SESSION_COMBAT_STATE_MAP_KEY) ?? {}
+}
+
+function getMutableCombatStateMap() {
+  const store = getGameSessionStore()
+  const existing = store.get<Record<string, CharacterCombatState>>(SESSION_COMBAT_STATE_MAP_KEY)
+
+  if (existing) {
+    return existing
+  }
+
+  const created: Record<string, CharacterCombatState> = {}
+  store.set(SESSION_COMBAT_STATE_MAP_KEY, created)
+  return created
 }

@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it } from "vitest"
 
+import { clearGameSession } from "@/engine/session/game-session-store"
 import {
   getNpcSquadById,
   getNpcSquadTemplates,
@@ -8,6 +9,10 @@ import {
 } from "@/features/map/data/npc-squads"
 
 describe("npc squad session data", () => {
+  beforeEach(() => {
+    clearGameSession()
+  })
+
   it("returns cached squad templates in the same session", () => {
     const first = getNpcSquadTemplates()
     const second = getNpcSquadTemplates()

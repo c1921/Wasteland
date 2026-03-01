@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it } from "vitest"
 
+import { clearGameSession } from "@/engine/session/game-session-store"
 import {
   applyInventoryTransfer,
   getLocationInventoryMap,
@@ -22,6 +23,10 @@ function buildTestItem(id: string, value: number, quantity: number) {
 }
 
 describe("session inventories", () => {
+  beforeEach(() => {
+    clearGameSession()
+  })
+
   it("caches player team inventory for the same session", () => {
     const first = getPlayerTeamInventory()
     const second = getPlayerTeamInventory()

@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it } from "vitest"
 
+import { clearGameSession } from "@/engine/session/game-session-store"
 import {
   getLocationInventoryById,
   getPlayerTeamInventory,
@@ -55,6 +56,10 @@ function buildMedicine(quantity: number) {
 }
 
 describe("session trades", () => {
+  beforeEach(() => {
+    clearGameSession()
+  })
+
   it("applies successful trade to both inventories", () => {
     replaceInventoryByOwner({ type: "player-team" }, [buildCash(3)])
     replaceInventoryByOwner({ type: "location", id: TEST_LOCATION_ID }, [buildTool(1)])
