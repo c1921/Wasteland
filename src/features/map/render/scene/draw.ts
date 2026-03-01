@@ -23,6 +23,17 @@ function flattenPolygon(polygon: WorldPoint[]) {
   return points
 }
 
+function buildDiamond(radius: number) {
+  return [0, -radius, radius, 0, 0, radius, -radius, 0]
+}
+
+function traceChevron(marker: Graphics, size: number) {
+  const wing = size * 0.62
+  const shoulderY = size * 0.18
+
+  marker.moveTo(-wing, shoulderY).lineTo(0, -size).lineTo(wing, shoulderY)
+}
+
 export function drawBackground(
   backgroundLayer: Graphics,
   world: WorldConfig,
@@ -105,9 +116,30 @@ export function drawPlayerMarker(
   player: { x: number; y: number }
 ) {
   playerMarker.clear()
-  playerMarker.circle(0, 0, 16).fill({ color: 0x88bbd0, alpha: 0.16 })
-  playerMarker.circle(0, 0, 9.6).stroke({ width: 2, color: 0xb6d5e4, alpha: 0.95 })
-  playerMarker.circle(0, 0, 4.6).fill({ color: 0xe4f2fb, alpha: 1 })
+  traceChevron(playerMarker, 16)
+  playerMarker.stroke({
+    width: 8.5,
+    color: 0x6fd6f0,
+    alpha: 0.2,
+    cap: "round",
+    join: "round",
+  })
+  traceChevron(playerMarker, 12)
+  playerMarker.stroke({
+    width: 3.4,
+    color: 0x9ee8fb,
+    alpha: 0.95,
+    cap: "round",
+    join: "round",
+  })
+  traceChevron(playerMarker, 8)
+  playerMarker.stroke({
+    width: 1.8,
+    color: 0xe6fbff,
+    alpha: 1,
+    cap: "round",
+    join: "round",
+  })
   playerMarker.position.set(player.x, player.y)
 }
 
@@ -191,19 +223,21 @@ export function drawNpcSquads({
 
   for (const squad of npcSquadRuntimes) {
     const marker = new Graphics()
+    const outerDiamond = buildDiamond(11.8)
+    const ringDiamond = buildDiamond(6.8)
 
     marker
-      .circle(0, 0, 14)
-      .fill({ color: 0x95d29f, alpha: 0.12 })
-      .circle(0, 0, 8)
-      .stroke({ width: 1.8, color: 0x9fdfa9, alpha: 0.92 })
-      .circle(0, 0, 3.8)
+      .poly(outerDiamond)
+      .fill({ color: 0x95d29f, alpha: 0.14 })
+      .poly(ringDiamond)
+      .stroke({ width: 1.8, color: 0x9fdfa9, alpha: 0.94, join: "round" })
+      .circle(0, 0, 2.9)
       .fill({ color: 0xe9f9ec, alpha: 1 })
 
     marker.position.set(squad.mover.x, squad.mover.y)
     marker.eventMode = "static"
     marker.cursor = "pointer"
-    marker.hitArea = new Circle(0, 0, 15)
+    marker.hitArea = new Circle(0, 0, 14)
 
     const updateTooltipPosition = (event: FederatedPointerEvent) => {
       showTooltip(

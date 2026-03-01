@@ -33,9 +33,20 @@ export function tickScene({
   world,
   updateNpcMarkerPosition,
 }: TickSceneParams) {
+  const prevPlayerX = player.x
+  const prevPlayerY = player.y
   const playerStep = advancePathMover(player, deltaMs, movementTimeScale)
 
   if (playerStep.moved) {
+    const dx = player.x - prevPlayerX
+    const dy = player.y - prevPlayerY
+    const movedDistance = Math.hypot(dx, dy)
+
+    if (movedDistance > 0.0001) {
+      // Chevron base shape points upward, so apply a +90deg offset from +X axis.
+      playerMarker.rotation = Math.atan2(dy, dx) + Math.PI / 2
+    }
+
     playerMarker.position.set(player.x, player.y)
     drawPath([{ x: player.x, y: player.y }, ...player.path])
   }
