@@ -149,7 +149,7 @@ describe("TradePanel", () => {
 
     expect(screen.getByTestId("trade-net-weapon-1").textContent).toBe("-2")
     expect(screen.getByText("我售出总价值: 260")).toBeTruthy()
-    expect(screen.getByText("净值(售出-购入): 260")).toBeTruthy()
+    expect(screen.getByText("净值: 260")).toBeTruthy()
     expect(screen.getByRole("button", { name: "减少铁管步枪" }).getAttribute("disabled")).not.toBeNull()
     expect(screen.getByRole("button", { name: "确认交易" }).getAttribute("disabled")).toBeNull()
   })
@@ -159,7 +159,7 @@ describe("TradePanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "减少铁管步枪" }))
 
-    expect(screen.getByText("净值(售出-购入): 130")).toBeTruthy()
+    expect(screen.getByText("净值: 130")).toBeTruthy()
     expect(
       screen.getByText((_, element) => {
         return element?.textContent === "货币支出总额: 0（无）"
