@@ -6,7 +6,7 @@ export function TopTimeBar() {
   const { formattedDateTime, isPaused, speed, setSpeed, togglePause } = useGameClock()
 
   return (
-    <div className="border-b bg-background/90 px-3 backdrop-blur supports-backdrop-filter:bg-background/75 md:px-4">
+    <div className="sticky top-0 z-40 shrink-0 bg-background/90 px-3 backdrop-blur supports-backdrop-filter:bg-background/75 md:px-4">
       <div className="flex h-11 items-center justify-between gap-3">
         <span className="text-sm font-medium tabular-nums">
           {formattedDateTime}

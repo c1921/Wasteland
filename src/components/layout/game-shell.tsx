@@ -44,15 +44,25 @@ export function GameShell() {
           activeNav={activeNav}
           onChange={setActiveNav}
         />
-        <main className={isMapPage ? "ml-14 flex h-screen flex-col overflow-hidden" : "ml-14 flex min-h-screen flex-col"}>
+        <main
+          className={
+            isMapPage
+              ? "ml-10 md:ml-14 flex h-screen flex-col overflow-hidden"
+              : "ml-10 md:ml-14 flex min-h-screen flex-col"
+          }
+        >
           <TopTimeBar />
-          <div className={isMapPage ? "min-h-0 flex-1" : "min-h-0 flex-1 p-4 md:p-6"}>
+          <div
+            className={
+              isMapPage ? "min-h-0 flex-1" : "min-h-0 flex-1 p-2 md:p-6"
+            }
+          >
             <ActivePanel activeNav={activeNav} />
           </div>
         </main>
       </div>
     </TradeNavigationProvider>
-  )
+  );
 }
 
 type ActivePanelProps = {

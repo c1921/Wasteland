@@ -13,7 +13,7 @@ export function SidebarNav({ items, activeNav, onChange }: SidebarNavProps) {
   const bottomItems = items.filter((item) => item.dock === "bottom")
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 flex w-14 flex-col border-r bg-sidebar text-sidebar-foreground">
+    <aside className="fixed inset-y-0 left-0 z-30 flex w-10 md:w-14 flex-col border-r bg-sidebar text-sidebar-foreground">
       <nav className="flex flex-1 flex-col justify-between pt-11 pb-3">
         <div className="flex flex-col items-center gap-2">
           {topItems.map((item) => {
