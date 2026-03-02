@@ -44,8 +44,7 @@ jobs:
             TARGET_DIR="preview"
           fi
 
-          REPO="${GITHUB_REPOSITORY##*/}"
-          BASE="/$REPO/$TARGET_DIR/"
+          BASE="/$TARGET_DIR/"
 
           echo "dir=$TARGET_DIR" >> "$GITHUB_OUTPUT"
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
@@ -110,6 +109,7 @@ jobs:
           </html>
           EOF
 
+          echo "wasteland.bemon.space" > "gh-pages/CNAME"
           touch "gh-pages/.nojekyll"
 
       - name: Commit & Push
