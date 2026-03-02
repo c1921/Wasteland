@@ -82,4 +82,14 @@ describe("map theme palette", () => {
     await flushMutationObserver()
     expect(onThemeChange).toHaveBeenCalledTimes(2)
   })
+
+  it("can emit an initial change event immediately", () => {
+    const onThemeChange = vi.fn()
+    const stopObserver = observeThemeClassChange(onThemeChange, root, {
+      emitInitial: true,
+    })
+
+    expect(onThemeChange).toHaveBeenCalledTimes(1)
+    stopObserver()
+  })
 })

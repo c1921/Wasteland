@@ -99,6 +99,11 @@ export async function createPixiMapScene({
   let stopThemeObserver: (() => void) | null = null
   let mapTheme = resolveMapThemePalette()
 
+  const syncMapTheme = () => {
+    mapTheme = resolveMapThemePalette()
+    drawBackground(backgroundLayer, world, mapTheme)
+  }
+
   const clearTooltip = () => {
     callbacks.onTooltipChange(null)
   }
@@ -197,7 +202,7 @@ export async function createPixiMapScene({
   playerLayer.addChild(playerMarker)
   app.stage.addChild(worldContainer)
 
-  drawBackground(backgroundLayer, world, mapTheme)
+  syncMapTheme()
   drawObstacles(obstacleLayer, obstacles)
   drawNodes({
     nodeLayer,
@@ -243,9 +248,8 @@ export async function createPixiMapScene({
       return
     }
 
-    mapTheme = resolveMapThemePalette()
-    drawBackground(backgroundLayer, world, mapTheme)
-  })
+    syncMapTheme()
+  }, undefined, { emitInitial: true })
 
   resizeObserver = new ResizeObserver(() => {
     resize()

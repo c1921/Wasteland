@@ -339,13 +339,20 @@ export function resolveMapThemePalette(root?: HTMLElement): MapThemePalette {
 
 export function observeThemeClassChange(
   onChange: () => void,
-  root?: HTMLElement
+  root?: HTMLElement,
+  options?: {
+    emitInitial?: boolean
+  }
 ) {
   if (
     typeof MutationObserver === "undefined" ||
     typeof window === "undefined" ||
     typeof document === "undefined"
   ) {
+    if (options?.emitInitial) {
+      onChange()
+    }
+
     return () => {}
   }
 
@@ -369,6 +376,10 @@ export function observeThemeClassChange(
     attributes: true,
     attributeFilter: ["class", "data-base-color"],
   })
+
+  if (options?.emitInitial) {
+    onChange()
+  }
 
   return () => {
     observer.disconnect()
