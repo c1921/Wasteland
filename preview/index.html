@@ -4,8 +4,56 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/preview/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      ;(() => {
+        const THEME_KEY = "vite-ui-theme"
+        const BASE_COLOR_KEY = "vite-ui-base-color"
+        const UI_SCALE_KEY = "vite-ui-scale"
+        const DEFAULT_THEME = "dark"
+        const DEFAULT_BASE_COLOR = "neutral"
+        const DEFAULT_UI_SCALE = 100
+        const UI_SCALE_MIN = 75
+        const UI_SCALE_MAX = 150
+        const VALID_THEMES = new Set(["light", "dark", "system"])
+        const VALID_BASE_COLORS = new Set(["gray", "neutral", "slate", "stone", "zinc"])
+
+        const clampUiScale = (value) =>
+          Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, Math.round(value)))
+
+        try {
+          const root = document.documentElement
+          const savedTheme = localStorage.getItem(THEME_KEY)
+          const savedBaseColor = localStorage.getItem(BASE_COLOR_KEY)
+          const savedUiScale = localStorage.getItem(UI_SCALE_KEY)
+
+          const theme = VALID_THEMES.has(savedTheme) ? savedTheme : DEFAULT_THEME
+          const baseColor = VALID_BASE_COLORS.has(savedBaseColor)
+            ? savedBaseColor
+            : DEFAULT_BASE_COLOR
+          const parsedUiScale = Number.parseInt(savedUiScale ?? "", 10)
+          const uiScale = Number.isInteger(parsedUiScale)
+            ? clampUiScale(parsedUiScale)
+            : DEFAULT_UI_SCALE
+
+          root.classList.remove("light", "dark")
+
+          const resolvedTheme =
+            theme === "system"
+              ? window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light"
+              : theme
+
+          root.classList.add(resolvedTheme)
+          root.dataset.baseColor = baseColor
+          root.style.setProperty("--ui-scale", `${uiScale}%`)
+        } catch {
+          // Ignore storage access failures and keep stylesheet defaults.
+        }
+      })()
+    </script>
     <title>vite-app</title>
-    <script type="module" crossorigin src="/preview/assets/index-CcXSn7qd.js"></script>
+    <script type="module" crossorigin src="/preview/assets/index-C-yLSVUS.js"></script>
     <link rel="modulepreload" crossorigin href="/preview/assets/react-vendor-6AcDCH5R.js">
     <link rel="modulepreload" crossorigin href="/preview/assets/pixi-CGUQVI7B.js">
     <link rel="modulepreload" crossorigin href="/preview/assets/ui-vendor-Ds51HHY8.js">
