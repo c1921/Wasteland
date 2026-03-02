@@ -1,4 +1,4 @@
-import { useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Minus, Plus } from "lucide-react"
 
 import { useMapController } from "@/features/map/hooks/use-map-controller"
@@ -33,6 +33,7 @@ export function PixiMapCanvas({
   className,
 }: PixiMapCanvasProps) {
   const hostRef = useRef<HTMLDivElement | null>(null)
+  const [isCoarsePointer, setIsCoarsePointer] = useState(false)
   const { speed, isPaused = false } = useGameClock()
   const { tooltip, statusMessage, zoomPercent, zoomIn, zoomOut } = useMapController({
     hostRef,
@@ -44,6 +45,31 @@ export function PixiMapCanvas({
     onNodeSelect,
     onSquadSelect,
   })
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return
+    }
+
+    const mediaQuery = window.matchMedia("(pointer: coarse)")
+    const sync = () => {
+      setIsCoarsePointer(mediaQuery.matches)
+    }
+
+    sync()
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", sync)
+      return () => {
+        mediaQuery.removeEventListener("change", sync)
+      }
+    }
+
+    mediaQuery.addListener(sync)
+    return () => {
+      mediaQuery.removeListener(sync)
+    }
+  }, [])
 
   return (
     <div
@@ -73,6 +99,11 @@ export function PixiMapCanvas({
         >
           <Plus />
         </Button>
+      </div>
+      <div className="pointer-events-none absolute bottom-3 left-3 z-20 rounded-md border border-white/15 bg-[#1a2128]/80 px-2.5 py-1 text-[10px] tracking-wide text-[#c5d2dc]">
+        {isCoarsePointer
+          ? "单指拖拽 · 双指缩放 · 长按寻路"
+          : "左键拖拽 · 右键寻路 · 滚轮缩放"}
       </div>
       {statusMessage ? (
         <div className="pointer-events-none absolute top-3 left-3 z-20 rounded-md border border-[#d28b74]/40 bg-[#2a1d1b]/90 px-2.5 py-1.5 text-[11px] text-[#f1c8b9] shadow-[0_8px_20px_rgba(0,0,0,0.34)]">

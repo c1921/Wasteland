@@ -149,6 +149,8 @@ export async function createPixiMapScene({
     onTooltipHide: clearTooltip,
     onStatusMessage: callbacks.onStatusMessage,
     syncCamera,
+    getViewportSize,
+    onZoomPercentChange: callbacks.onZoomPercentChange,
   })
 
   const tick = () => {
@@ -226,6 +228,7 @@ export async function createPixiMapScene({
   app.stage.on("pointermove", pointerHandlers.onPointerMove)
   app.stage.on("pointerup", pointerHandlers.onPointerUp)
   app.stage.on("pointerupoutside", pointerHandlers.onPointerUp)
+  app.stage.on("pointercancel", pointerHandlers.onPointerCancel)
   app.ticker.add(tick)
 
   wheelHandler = createWheelHandler({
@@ -290,6 +293,7 @@ export async function createPixiMapScene({
       app.stage.off("pointermove", pointerHandlers.onPointerMove)
       app.stage.off("pointerup", pointerHandlers.onPointerUp)
       app.stage.off("pointerupoutside", pointerHandlers.onPointerUp)
+      app.stage.off("pointercancel", pointerHandlers.onPointerCancel)
       app.ticker.remove(tick)
 
       if (wheelHandler) {

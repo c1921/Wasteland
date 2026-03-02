@@ -11,12 +11,28 @@ import { toWorldPoint, zoomCameraAtPoint } from "@/features/map/render/scene/cam
 import type { CameraState, DragState } from "@/features/map/render/scene/types"
 import type { WorldConfig, WorldPoint } from "@/features/map/types"
 
+const LONG_PRESS_MS = 420
+const MOVE_CANCEL_THRESHOLD_PX = 10
+
 type ZoomContext = {
   camera: CameraState
   world: WorldConfig
   getViewportSize: () => { width: number; height: number }
   syncCamera: () => void
   onZoomPercentChange: (zoomPercent: number) => void
+}
+
+type PointerSample = {
+  x: number
+  y: number
+}
+
+function isTouchLike(pointerType: string) {
+  return pointerType === "touch" || pointerType === "pen"
+}
+
+function getPointerDistance(first: PointerSample, second: PointerSample) {
+  return Math.hypot(first.x - second.x, first.y - second.y)
 }
 
 function zoomAtPoint({
@@ -106,6 +122,8 @@ export function createPointerHandlers({
   onTooltipHide,
   onStatusMessage,
   syncCamera,
+  getViewportSize,
+  onZoomPercentChange,
 }: {
   camera: CameraState
   drag: DragState
@@ -116,7 +134,228 @@ export function createPointerHandlers({
   onTooltipHide: () => void
   onStatusMessage: (message: string) => void
   syncCamera: () => void
+  getViewportSize: () => { width: number; height: number }
+  onZoomPercentChange: (zoomPercent: number) => void
 }) {
+  const activePointers = new Map<number, PointerSample>()
+  let primaryPointerId: number | null = null
+  let longPressTimer: ReturnType<typeof setTimeout> | null = null
+  let longPressTriggered = false
+  let downX = 0
+  let downY = 0
+  let pinching = false
+  let lastPinchDistance: number | null = null
+
+  const clearLongPressTimer = () => {
+    if (longPressTimer !== null) {
+      clearTimeout(longPressTimer)
+      longPressTimer = null
+    }
+  }
+
+  const clearTouchState = () => {
+    clearLongPressTimer()
+    activePointers.clear()
+    primaryPointerId = null
+    longPressTriggered = false
+    pinching = false
+    lastPinchDistance = null
+    drag.active = false
+  }
+
+  const updateCameraFromDrag = (screenX: number, screenY: number) => {
+    camera.x = drag.cameraX + (screenX - drag.startX)
+    camera.y = drag.cameraY + (screenY - drag.startY)
+    syncCamera()
+  }
+
+  const getPinchPoints = (): [PointerSample, PointerSample] | null => {
+    const values = [...activePointers.values()]
+
+    if (values.length < 2) {
+      return null
+    }
+
+    return [values[0], values[1]]
+  }
+
+  const updatePinch = () => {
+    const points = getPinchPoints()
+
+    if (!points) {
+      return
+    }
+
+    const [first, second] = points
+    const distance = getPointerDistance(first, second)
+
+    if (!Number.isFinite(distance) || distance <= 0) {
+      return
+    }
+
+    if (lastPinchDistance === null) {
+      lastPinchDistance = distance
+      return
+    }
+
+    const factor = distance / lastPinchDistance
+    lastPinchDistance = distance
+
+    if (!Number.isFinite(factor) || Math.abs(factor - 1) < 0.005) {
+      return
+    }
+
+    zoomAtPoint({
+      camera,
+      world,
+      getViewportSize,
+      syncCamera,
+      onZoomPercentChange,
+      screenX: (first.x + second.x) / 2,
+      screenY: (first.y + second.y) / 2,
+      nextZoom: camera.zoom * factor,
+    })
+  }
+
+  const beginSingleTouch = (event: FederatedPointerEvent) => {
+    primaryPointerId = event.pointerId
+    downX = event.global.x
+    downY = event.global.y
+    longPressTriggered = false
+    pinching = false
+    lastPinchDistance = null
+    drag.active = false
+    drag.startX = downX
+    drag.startY = downY
+    drag.cameraX = camera.x
+    drag.cameraY = camera.y
+    clearLongPressTimer()
+
+    longPressTimer = setTimeout(() => {
+      if (primaryPointerId !== event.pointerId || pinching || drag.active || longPressTriggered) {
+        return
+      }
+
+      const pointer = activePointers.get(event.pointerId)
+
+      if (!pointer) {
+        return
+      }
+
+      longPressTriggered = true
+      beginPathTo({
+        camera,
+        world,
+        navigationGrid,
+        player,
+        drawPath,
+        onStatusMessage,
+        screenX: pointer.x,
+        screenY: pointer.y,
+      })
+    }, LONG_PRESS_MS)
+  }
+
+  const transitionToPinch = () => {
+    clearLongPressTimer()
+    longPressTriggered = false
+    pinching = true
+    drag.active = false
+    const points = getPinchPoints()
+    lastPinchDistance = points ? getPointerDistance(points[0], points[1]) : null
+  }
+
+  const onTouchPointerDown = (event: FederatedPointerEvent) => {
+    activePointers.set(event.pointerId, { x: event.global.x, y: event.global.y })
+    onTooltipHide()
+
+    if (activePointers.size === 1) {
+      beginSingleTouch(event)
+      return
+    }
+
+    transitionToPinch()
+  }
+
+  const onTouchPointerMove = (event: FederatedPointerEvent) => {
+    if (!activePointers.has(event.pointerId)) {
+      return
+    }
+
+    activePointers.set(event.pointerId, { x: event.global.x, y: event.global.y })
+
+    if (activePointers.size >= 2 || pinching) {
+      if (!pinching) {
+        transitionToPinch()
+      }
+
+      updatePinch()
+      return
+    }
+
+    if (longPressTriggered) {
+      return
+    }
+
+    const deltaX = event.global.x - downX
+    const deltaY = event.global.y - downY
+    const movedEnough = Math.hypot(deltaX, deltaY) > MOVE_CANCEL_THRESHOLD_PX
+
+    if (!drag.active && movedEnough) {
+      clearLongPressTimer()
+      drag.active = true
+      drag.startX = downX
+      drag.startY = downY
+      drag.cameraX = camera.x
+      drag.cameraY = camera.y
+    }
+
+    if (!drag.active) {
+      return
+    }
+
+    updateCameraFromDrag(event.global.x, event.global.y)
+  }
+
+  const onTouchPointerEnd = (event: FederatedPointerEvent) => {
+    activePointers.delete(event.pointerId)
+
+    if (primaryPointerId === event.pointerId) {
+      clearLongPressTimer()
+      primaryPointerId = null
+    }
+
+    if (activePointers.size === 0) {
+      clearTouchState()
+      return
+    }
+
+    if (activePointers.size >= 2) {
+      transitionToPinch()
+      return
+    }
+
+    const remaining = activePointers.entries().next().value
+
+    if (!remaining) {
+      clearTouchState()
+      return
+    }
+
+    const [pointerId, pointer] = remaining
+    primaryPointerId = pointerId
+    downX = pointer.x
+    downY = pointer.y
+    longPressTriggered = false
+    pinching = false
+    lastPinchDistance = null
+    drag.active = false
+    drag.startX = downX
+    drag.startY = downY
+    drag.cameraX = camera.x
+    drag.cameraY = camera.y
+  }
+
   const onPointerDown = (event: FederatedPointerEvent) => {
     if (event.pointerType === "mouse" && event.button === 2) {
       beginPathTo({
@@ -132,36 +371,75 @@ export function createPointerHandlers({
       return
     }
 
-    if (event.pointerType === "mouse" && event.button !== 0) {
+    if (event.pointerType === "mouse") {
+      if (event.button !== 0) {
+        return
+      }
+
+      drag.active = true
+      drag.startX = event.global.x
+      drag.startY = event.global.y
+      drag.cameraX = camera.x
+      drag.cameraY = camera.y
+      onTooltipHide()
       return
     }
 
-    drag.active = true
-    drag.startX = event.global.x
-    drag.startY = event.global.y
-    drag.cameraX = camera.x
-    drag.cameraY = camera.y
-    onTooltipHide()
+    if (!isTouchLike(event.pointerType)) {
+      return
+    }
+
+    onTouchPointerDown(event)
   }
 
   const onPointerMove = (event: FederatedPointerEvent) => {
-    if (!drag.active) {
+    if (event.pointerType === "mouse") {
+      if (!drag.active) {
+        return
+      }
+
+      updateCameraFromDrag(event.global.x, event.global.y)
       return
     }
 
-    camera.x = drag.cameraX + (event.global.x - drag.startX)
-    camera.y = drag.cameraY + (event.global.y - drag.startY)
-    syncCamera()
+    if (!isTouchLike(event.pointerType)) {
+      return
+    }
+
+    onTouchPointerMove(event)
   }
 
-  const onPointerUp = () => {
-    drag.active = false
+  const onPointerUp = (event: FederatedPointerEvent) => {
+    if (event.pointerType === "mouse") {
+      drag.active = false
+      return
+    }
+
+    if (!isTouchLike(event.pointerType)) {
+      return
+    }
+
+    onTouchPointerEnd(event)
+  }
+
+  const onPointerCancel = (event: FederatedPointerEvent) => {
+    if (event.pointerType === "mouse") {
+      drag.active = false
+      return
+    }
+
+    if (!isTouchLike(event.pointerType)) {
+      return
+    }
+
+    onTouchPointerEnd(event)
   }
 
   return {
     onPointerDown,
     onPointerMove,
     onPointerUp,
+    onPointerCancel,
   }
 }
 

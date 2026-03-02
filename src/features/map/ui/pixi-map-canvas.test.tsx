@@ -82,7 +82,7 @@ describe("PixiMapCanvas UI", () => {
     const host = container.firstElementChild as HTMLElement
 
     expect(screen.getByText("62%")).toBeTruthy()
-    expect(screen.queryByText("左键拖拽地图 · 右键点击自动寻路 · 滚轮缩放")).toBeNull()
+    expect(screen.getByText("左键拖拽 · 右键寻路 · 滚轮缩放")).toBeTruthy()
     expect(host.className).toContain("bg-background")
     expect(host.className).not.toContain("bg-[#0b0f14]")
 
@@ -91,6 +91,44 @@ describe("PixiMapCanvas UI", () => {
 
     expect(zoomInMock).toHaveBeenCalledTimes(1)
     expect(zoomOutMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("shows touch gesture hint on coarse pointers", () => {
+    setupControllerState()
+    const originalMatchMedia = window.matchMedia
+    const addEventListener = vi.fn()
+    const removeEventListener = vi.fn()
+    const addListener = vi.fn()
+    const removeListener = vi.fn()
+
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockReturnValue({
+        matches: true,
+        media: "(pointer: coarse)",
+        onchange: null,
+        addEventListener,
+        removeEventListener,
+        addListener,
+        removeListener,
+        dispatchEvent: vi.fn(),
+      }),
+    })
+
+    try {
+      const { unmount } = render(
+        <PixiMapCanvas world={world} nodes={nodes} obstacles={obstacles} />
+      )
+      expect(screen.getByText("单指拖拽 · 双指缩放 · 长按寻路")).toBeTruthy()
+
+      unmount()
+      expect(removeEventListener).toHaveBeenCalledTimes(1)
+    } finally {
+      Object.defineProperty(window, "matchMedia", {
+        writable: true,
+        value: originalMatchMedia,
+      })
+    }
   })
 
   it("forwards node selection callback to controller", () => {
