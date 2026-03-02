@@ -10,6 +10,8 @@ export default function App() {
       storageKey="vite-ui-theme"
       defaultBaseColor="neutral"
       baseColorStorageKey="vite-ui-base-color"
+      defaultUiScale={100}
+      uiScaleStorageKey="vite-ui-scale"
     >
       <GameSessionProvider>
         <GameClockProvider>

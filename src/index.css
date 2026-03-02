@@ -5,8 +5,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
+:root {
+    --ui-scale: 100%;
+}
+
 html {
     color-scheme: light dark;
+    font-size: var(--ui-scale);
 }
 
 html.light {

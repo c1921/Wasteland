@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Slider } from "@/components/ui/slider"
 import { PanelShell } from "@/shared/ui/panel-shell"
 
 type ThemeOption = {
@@ -54,6 +55,9 @@ const baseColorLabels: Record<BaseColor, string> = {
   stone: "Stone",
   zinc: "Zinc",
 }
+const DEFAULT_UI_SCALE = 100
+const UI_SCALE_MIN = 75
+const UI_SCALE_MAX = 150
 
 export function SettingsPanel() {
   const {
@@ -61,6 +65,8 @@ export function SettingsPanel() {
     setTheme,
     baseColor,
     setBaseColor,
+    uiScale,
+    setUiScale,
   } = useTheme()
 
   return (
@@ -122,6 +128,38 @@ export function SettingsPanel() {
             </div>
             <p className="text-muted-foreground text-xs">
               当前底色: {baseColorLabels[baseColor]}
+            </p>
+          </div>
+
+          <div className="grid gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold">界面缩放</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uiScale === DEFAULT_UI_SCALE}
+                onClick={() => setUiScale(DEFAULT_UI_SCALE)}
+              >
+                重置 100%
+              </Button>
+            </div>
+            <Slider
+              aria-label="界面缩放"
+              min={UI_SCALE_MIN}
+              max={UI_SCALE_MAX}
+              step={1}
+              value={[uiScale]}
+              onValueChange={(values) => {
+                const [nextUiScale] = values
+
+                if (typeof nextUiScale === "number") {
+                  setUiScale(nextUiScale)
+                }
+              }}
+            />
+            <p className="text-muted-foreground text-xs">
+              当前缩放: {uiScale}%（影响基于 rem 的界面尺寸）
             </p>
           </div>
         </CardContent>
