@@ -164,4 +164,44 @@ describe("tickNpcSquad", () => {
     expect(squad.target).toBeNull()
     expect(squad.idleRemainingMs).toBe(1200)
   })
+
+  it("scales idle countdown by time scale and freezes when paused", () => {
+    const navigationGrid = buildNavigationGrid(world, [])
+    const squad: NpcSquadRuntime = {
+      id: "squad-4",
+      name: "余烬巡逻组",
+      members: [],
+      target: null,
+      idleRemainingMs: 2_000,
+      mover: {
+        x: 20,
+        y: 20,
+        speed: 120,
+        moving: false,
+        path: [],
+      },
+    }
+
+    tickNpcSquad({
+      squad,
+      deltaMs: 100,
+      timeScale: 10,
+      navigationGrid,
+      world,
+      idleMinMs: 1_000,
+      idleMaxMs: 1_000,
+    })
+    expect(squad.idleRemainingMs).toBe(1_000)
+
+    tickNpcSquad({
+      squad,
+      deltaMs: 100,
+      timeScale: 0,
+      navigationGrid,
+      world,
+      idleMinMs: 1_000,
+      idleMaxMs: 1_000,
+    })
+    expect(squad.idleRemainingMs).toBe(1_000)
+  })
 })

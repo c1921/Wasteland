@@ -5,14 +5,14 @@ import { useAutoBattle } from "@/features/battle/hooks/use-auto-battle"
 import { Character, Gender } from "@/features/character/types"
 import type { BattleEncounterRef } from "@/features/battle/types"
 
-const useGameClockMock = vi.fn()
+const useGameClockControlsMock = vi.fn()
 const getCharactersMock = vi.fn()
 const getPersistedCombatStatesByCharacterIdsMock = vi.fn()
 const getNpcSquadByIdMock = vi.fn()
 const applyBattleOutcomeMock = vi.fn()
 
 vi.mock("@/features/time/game-clock-store", () => ({
-  useGameClock: () => useGameClockMock(),
+  useGameClockControls: () => useGameClockControlsMock(),
 }))
 
 vi.mock("@/features/character/data/characters", () => ({
@@ -118,7 +118,7 @@ describe("useAutoBattle", () => {
 
   function setupClockState(speed = 1, isPaused = false) {
     clockState = { speed, isPaused }
-    useGameClockMock.mockImplementation(() => clockState)
+    useGameClockControlsMock.mockImplementation(() => clockState)
   }
 
   function stepRaf(deltaMs: number) {
@@ -134,7 +134,7 @@ describe("useAutoBattle", () => {
   }
 
   beforeEach(() => {
-    useGameClockMock.mockReset()
+    useGameClockControlsMock.mockReset()
     getCharactersMock.mockReset()
     getPersistedCombatStatesByCharacterIdsMock.mockReset()
     getNpcSquadByIdMock.mockReset()

@@ -13,6 +13,7 @@ import {
 } from "@/features/battle/lib/engine"
 import { useBattleNavigation } from "@/features/battle/ui/battle-navigation-store"
 import { useAutoBattle } from "@/features/battle/hooks/use-auto-battle"
+import { formatGameDurationFromElapsedSec } from "@/features/time/lib/game-clock"
 import { PanelShell } from "@/shared/ui/panel-shell"
 
 export function BattlePanel() {
@@ -50,6 +51,7 @@ export function BattlePanel() {
   const summaryA = summarizeSquad(squadA)
   const summaryB = summarizeSquad(squadB)
   const isEnded = state.phase === "ended"
+  const elapsedGameDuration = formatGameDurationFromElapsedSec(state.elapsedSec)
   const winnerText =
     state.winnerSide === null
       ? "平局"
@@ -87,7 +89,7 @@ export function BattlePanel() {
               <CardContent className="space-y-1 text-sm">
                 <p>当前阶段: {BATTLE_PHASE_LABELS[state.phase]}</p>
                 <p>Tick: {state.tickCount}</p>
-                <p>战斗时长: {state.elapsedSec}s</p>
+                <p>战斗时长: {elapsedGameDuration}</p>
                 {isEnded ? <p>结果: {winnerText}</p> : null}
               </CardContent>
             </Card>

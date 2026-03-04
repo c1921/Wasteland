@@ -15,7 +15,7 @@ import type { BattleEncounterRef, BattleState } from "@/features/battle/types"
 import { getCharacters } from "@/features/character/data/characters"
 import { getPersistedCombatStatesByCharacterIds } from "@/features/character/data/session-combat-state"
 import { getNpcSquadById } from "@/features/map/data/npc-squads"
-import { useGameClock } from "@/features/time/game-clock-store"
+import { useGameClockControls } from "@/features/time/game-clock-store"
 
 function resolveEncounterBattleState(encounter: BattleEncounterRef | null) {
   if (!encounter) {
@@ -64,7 +64,7 @@ function resolveEncounterBattleState(encounter: BattleEncounterRef | null) {
 }
 
 export function useAutoBattle(encounter: BattleEncounterRef | null) {
-  const { speed, isPaused = false } = useGameClock()
+  const { speed, isPaused = false } = useGameClockControls()
   const [state, setState] = useState<BattleState | null>(() => {
     return resolveEncounterBattleState(encounter).state
   })

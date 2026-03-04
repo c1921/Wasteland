@@ -1,26 +1,41 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  GAME_MS_PER_REAL_MS,
+  REAL_MS_PER_GAME_HOUR,
   advanceGameTime,
   deserializeClockState,
   formatGameDateTime,
+  formatGameDurationFromElapsedSec,
   isValidTimeSpeed,
   serializeClockState,
+  toGameMsFromRealMs,
 } from "@/features/time/lib/game-clock"
 
 describe("game clock utilities", () => {
-  it("advances one in-game minute per real second at 1x speed", () => {
-    const start = new Date(2059, 0, 1, 8, 0).getTime()
-    const next = advanceGameTime(start, 1000, 1)
+  it("uses the 500ms per in-game hour baseline", () => {
+    expect(REAL_MS_PER_GAME_HOUR).toBe(500)
+    expect(GAME_MS_PER_REAL_MS).toBe(7200)
+  })
 
-    expect(next - start).toBe(60_000)
+  it("converts real milliseconds to in-game milliseconds", () => {
+    expect(toGameMsFromRealMs(500, 1)).toBe(3_600_000)
+    expect(toGameMsFromRealMs(1000, 1)).toBe(7_200_000)
+    expect(toGameMsFromRealMs(1000, 10)).toBe(72_000_000)
+  })
+
+  it("advances one in-game hour per 500ms at 1x speed", () => {
+    const start = new Date(2059, 0, 1, 8, 0).getTime()
+    const next = advanceGameTime(start, 500, 1)
+
+    expect(next - start).toBe(3_600_000)
   })
 
   it("applies fast-forward multiplier", () => {
     const start = new Date(2059, 0, 1, 8, 0).getTime()
     const next = advanceGameTime(start, 1000, 10)
 
-    expect(next - start).toBe(600_000)
+    expect(next - start).toBe(72_000_000)
   })
 
   it("formats time using YYYY年MM月DD日 HH:mm", () => {
@@ -31,9 +46,9 @@ describe("game clock utilities", () => {
 
   it("follows Gregorian calendar leap-year rules", () => {
     const feb28 = new Date(2060, 1, 28, 23, 59).getTime()
-    const nextMinute = advanceGameTime(feb28, 1000, 1)
+    const nextMinute = advanceGameTime(feb28, 500, 1)
 
-    expect(formatGameDateTime(nextMinute)).toBe("2060年02月29日 00:00")
+    expect(formatGameDateTime(nextMinute)).toBe("2060年02月29日 00:59")
   })
 
   it("hydrates persisted state when payload is valid", () => {
@@ -90,5 +105,11 @@ describe("game clock utilities", () => {
     expect(isValidTimeSpeed(5)).toBe(true)
     expect(isValidTimeSpeed(10)).toBe(true)
     expect(isValidTimeSpeed(2)).toBe(false)
+  })
+
+  it("formats elapsed real seconds into in-game duration", () => {
+    expect(formatGameDurationFromElapsedSec(0)).toBe("0分钟")
+    expect(formatGameDurationFromElapsedSec(1)).toBe("2小时0分钟")
+    expect(formatGameDurationFromElapsedSec(90)).toBe("180小时0分钟")
   })
 })

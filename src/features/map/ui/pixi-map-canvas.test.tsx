@@ -12,7 +12,7 @@ import type {
 } from "@/features/map/types"
 
 const useMapControllerMock = vi.fn()
-const useGameClockMock = vi.fn()
+const useGameClockControlsMock = vi.fn()
 const zoomInMock = vi.fn()
 const zoomOutMock = vi.fn()
 
@@ -21,7 +21,7 @@ vi.mock("@/features/map/hooks/use-map-controller", () => ({
 }))
 
 vi.mock("@/features/time/game-clock-store", () => ({
-  useGameClock: () => useGameClockMock(),
+  useGameClockControls: () => useGameClockControlsMock(),
 }))
 
 const world: WorldConfig = {
@@ -60,7 +60,7 @@ function setupControllerState(overrides?: {
 }
 
 function setupClockState(speed = 10, isPaused = false) {
-  useGameClockMock.mockReturnValue({
+  useGameClockControlsMock.mockReturnValue({
     speed,
     isPaused,
   })
@@ -69,7 +69,7 @@ function setupClockState(speed = 10, isPaused = false) {
 describe("PixiMapCanvas UI", () => {
   beforeEach(() => {
     useMapControllerMock.mockReset()
-    useGameClockMock.mockReset()
+    useGameClockControlsMock.mockReset()
     zoomInMock.mockReset()
     zoomOutMock.mockReset()
     setupClockState(10)

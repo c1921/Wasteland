@@ -9,7 +9,7 @@ import type {
   NpcSquadTemplate,
   WorldConfig,
 } from "@/features/map/types"
-import { useGameClock } from "@/features/time/game-clock-store"
+import { useGameClockControls } from "@/features/time/game-clock-store"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -34,7 +34,7 @@ export function PixiMapCanvas({
 }: PixiMapCanvasProps) {
   const hostRef = useRef<HTMLDivElement | null>(null)
   const [isCoarsePointer, setIsCoarsePointer] = useState(false)
-  const { speed, isPaused = false } = useGameClock()
+  const { speed, isPaused = false } = useGameClockControls()
   const { tooltip, statusMessage, zoomPercent, zoomIn, zoomOut } = useMapController({
     hostRef,
     world,

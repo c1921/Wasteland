@@ -15,7 +15,12 @@ import {
   type GameClockState,
   type TimeSpeed,
 } from "@/features/time/types"
-import { GameClockContext, type GameClockContextValue } from "@/features/time/game-clock-store"
+import {
+  GameClockContext,
+  GameClockControlsContext,
+  type GameClockContextValue,
+  type GameClockControlsValue,
+} from "@/features/time/game-clock-store"
 
 type GameClockProviderProps = {
   children: React.ReactNode
@@ -171,30 +176,31 @@ export function GameClockProvider({
     }
   }, [persistClock])
 
-  const value = useMemo<GameClockContextValue>(() => {
-    const currentTime = new Date(clockState.currentTimeMs)
-
+  const controlsValue = useMemo<GameClockControlsValue>(() => {
     return {
-      currentTime,
       speed: clockState.speed,
       isPaused: clockState.isPaused,
       setSpeed,
       setPaused,
       togglePause,
+    }
+  }, [clockState.isPaused, clockState.speed, setPaused, setSpeed, togglePause])
+
+  const value = useMemo<GameClockContextValue>(() => {
+    const currentTime = new Date(clockState.currentTimeMs)
+
+    return {
+      ...controlsValue,
+      currentTime,
       formattedDateTime: formatGameDateTime(clockState.currentTimeMs),
     }
-  }, [
-    clockState.currentTimeMs,
-    clockState.isPaused,
-    clockState.speed,
-    setPaused,
-    setSpeed,
-    togglePause,
-  ])
+  }, [clockState.currentTimeMs, controlsValue])
 
   return (
-    <GameClockContext.Provider value={value}>
-      {children}
-    </GameClockContext.Provider>
+    <GameClockControlsContext.Provider value={controlsValue}>
+      <GameClockContext.Provider value={value}>
+        {children}
+      </GameClockContext.Provider>
+    </GameClockControlsContext.Provider>
   )
 }

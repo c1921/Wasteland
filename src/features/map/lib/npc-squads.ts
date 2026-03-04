@@ -258,7 +258,8 @@ export function tickNpcSquad({
   idleMaxMs = NPC_SQUAD_IDLE_MAX_MS,
 }: TickNpcSquadParams): TickNpcSquadResult {
   const safeDeltaMs = Number.isFinite(deltaMs) ? Math.max(0, deltaMs) : 0
-  const movementStep = advancePathMover(squad.mover, safeDeltaMs, timeScale)
+  const safeTimeScale = Number.isFinite(timeScale) ? Math.max(0, timeScale) : 0
+  const movementStep = advancePathMover(squad.mover, safeDeltaMs, safeTimeScale)
 
   if (movementStep.arrived) {
     squad.target = null
@@ -275,7 +276,10 @@ export function tickNpcSquad({
   }
 
   if (squad.idleRemainingMs > 0) {
-    squad.idleRemainingMs = Math.max(0, squad.idleRemainingMs - safeDeltaMs)
+    squad.idleRemainingMs = Math.max(
+      0,
+      squad.idleRemainingMs - safeDeltaMs * safeTimeScale
+    )
     return {
       moved: false,
     }
