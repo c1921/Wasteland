@@ -131,10 +131,11 @@ describe("PixiMapCanvas UI", () => {
     }
   })
 
-  it("forwards node selection callback to controller", () => {
+  it("forwards map interaction callbacks to controller", () => {
     setupControllerState()
     const onNodeSelect = vi.fn()
     const onSquadSelect = vi.fn<(squad: NpcSquadSnapshot) => void>()
+    const onSquadFollow = vi.fn<(squad: NpcSquadSnapshot) => void>()
 
     render(
       <PixiMapCanvas
@@ -144,12 +145,14 @@ describe("PixiMapCanvas UI", () => {
         npcSquads={npcSquads}
         onNodeSelect={onNodeSelect}
         onSquadSelect={onSquadSelect}
+        onSquadFollow={onSquadFollow}
       />
     )
 
     expect(useMapControllerMock).toHaveBeenCalledTimes(1)
     expect(useMapControllerMock.mock.calls[0][0].onNodeSelect).toBe(onNodeSelect)
     expect(useMapControllerMock.mock.calls[0][0].onSquadSelect).toBe(onSquadSelect)
+    expect(useMapControllerMock.mock.calls[0][0].onSquadFollow).toBe(onSquadFollow)
     expect(useMapControllerMock.mock.calls[0][0].npcSquads).toBe(npcSquads)
     expect(useMapControllerMock.mock.calls[0][0].movementTimeScale).toBe(10)
   })

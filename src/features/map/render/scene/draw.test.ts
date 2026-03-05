@@ -183,6 +183,7 @@ describe("map draw markers", () => {
   it("renders location markers as circles and keeps node interaction", () => {
     const nodeLayer = new pixiMock.MockContainer()
     const onNodeSelect = vi.fn<(nodeId: string) => void>()
+    const onNodeNavigate = vi.fn<(target: { x: number; y: number }) => void>()
     const showTooltip = vi.fn()
     const clearTooltip = vi.fn()
     const nodes: MapNode[] = [
@@ -196,6 +197,7 @@ describe("map draw markers", () => {
       showTooltip,
       clearTooltip,
       onNodeSelect,
+      onNodeNavigate,
     })
 
     expect(nodeLayer.children).toHaveLength(2)
@@ -206,15 +208,27 @@ describe("map draw markers", () => {
     expect(polyCalls).toHaveLength(0)
 
     const stopPropagation = vi.fn()
-    marker.trigger("pointertap", { stopPropagation })
+    marker.trigger("pointertap", { stopPropagation, button: 0 })
     expect(stopPropagation).toHaveBeenCalledTimes(1)
     expect(onNodeSelect).toHaveBeenCalledWith("node-1")
+
+    const preventDefault = vi.fn()
+    marker.trigger("pointerdown", {
+      stopPropagation,
+      preventDefault,
+      button: 2,
+    })
+
+    expect(preventDefault).toHaveBeenCalledTimes(1)
+    expect(onNodeNavigate).toHaveBeenCalledWith({ x: 120, y: 220 })
+    expect(onNodeSelect).toHaveBeenCalledTimes(1)
   })
 
   it("renders squad markers as diamonds and keeps squad interaction", () => {
     const npcLayer = new pixiMock.MockContainer()
     const npcMarkers = new Map<string, Graphics>()
     const onSquadSelect = vi.fn()
+    const onSquadFollow = vi.fn()
     const showTooltip = vi.fn()
     const clearTooltip = vi.fn()
     const squad: NpcSquadRuntime = {
@@ -239,6 +253,7 @@ describe("map draw markers", () => {
       showTooltip,
       clearTooltip,
       onSquadSelect,
+      onSquadFollow,
     })
 
     expect(npcLayer.children).toHaveLength(1)
@@ -252,7 +267,7 @@ describe("map draw markers", () => {
     marker.trigger("pointerover", {
       global: { x: 100, y: 200 },
     })
-    marker.trigger("pointertap", { stopPropagation })
+    marker.trigger("pointertap", { stopPropagation, button: 0 })
 
     expect(showTooltip).toHaveBeenCalledWith("灰狼巡逻组-1", "0名NPC", 100, 200)
     expect(stopPropagation).toHaveBeenCalledTimes(1)
@@ -263,6 +278,23 @@ describe("map draw markers", () => {
       position: { x: 380, y: 640 },
       moving: false,
     })
+
+    const preventDefault = vi.fn()
+    marker.trigger("pointerdown", {
+      stopPropagation,
+      preventDefault,
+      button: 2,
+    })
+
+    expect(preventDefault).toHaveBeenCalledTimes(1)
+    expect(onSquadFollow).toHaveBeenCalledWith({
+      id: "squad-1",
+      name: "灰狼巡逻组-1",
+      members: [],
+      position: { x: 380, y: 640 },
+      moving: false,
+    })
+    expect(onSquadSelect).toHaveBeenCalledTimes(1)
     expect(npcMarkers.get("squad-1")).toBe(marker)
   })
 

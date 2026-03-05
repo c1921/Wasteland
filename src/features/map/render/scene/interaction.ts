@@ -27,6 +27,8 @@ type PointerSample = {
   y: number
 }
 
+export type RouteToWorldResult = "success" | "blocked" | "no-path"
+
 function isTouchLike(pointerType: string) {
   return pointerType === "touch" || pointerType === "pen"
 }
@@ -68,7 +70,61 @@ function zoomAtPoint({
   onZoomPercentChange(Math.round(camera.zoom * 100))
 }
 
-function beginPathTo({
+export function resolveRouteFailureMessage(result: RouteToWorldResult) {
+  if (result === "blocked") {
+    return "目标不可达：不可通行区域"
+  }
+
+  if (result === "no-path") {
+    return "目标不可达：未找到有效路径"
+  }
+
+  return null
+}
+
+export function beginPathToWorld({
+  navigationGrid,
+  player,
+  drawPath,
+  target,
+  clearOnFailure = true,
+}: {
+  navigationGrid: NavigationGrid
+  player: PathMover
+  drawPath: (points: WorldPoint[]) => void
+  target: WorldPoint
+  clearOnFailure?: boolean
+}): RouteToWorldResult {
+
+  if (isPointBlocked(navigationGrid, target)) {
+    if (clearOnFailure) {
+      player.moving = false
+      player.path = []
+      drawPath([])
+    }
+
+    return "blocked"
+  }
+
+  const path = findPathAStar(navigationGrid, { x: player.x, y: player.y }, target)
+
+  if (!path || path.length < 2) {
+    if (clearOnFailure) {
+      player.moving = false
+      player.path = []
+      drawPath([])
+    }
+
+    return "no-path"
+  }
+
+  player.path = path.slice(1)
+  player.moving = true
+  drawPath([{ x: player.x, y: player.y }, ...player.path])
+  return "success"
+}
+
+function beginPathToScreen({
   camera,
   world,
   navigationGrid,
@@ -88,28 +144,18 @@ function beginPathTo({
   screenY: number
 }) {
   const target = toWorldPoint(camera, world, screenX, screenY)
+  const result = beginPathToWorld({
+    navigationGrid,
+    player,
+    drawPath,
+    target,
+    clearOnFailure: true,
+  })
+  const message = resolveRouteFailureMessage(result)
 
-  if (isPointBlocked(navigationGrid, target)) {
-    player.moving = false
-    player.path = []
-    drawPath([])
-    onStatusMessage("目标不可达：不可通行区域")
-    return
+  if (message) {
+    onStatusMessage(message)
   }
-
-  const path = findPathAStar(navigationGrid, { x: player.x, y: player.y }, target)
-
-  if (!path || path.length < 2) {
-    player.moving = false
-    player.path = []
-    drawPath([])
-    onStatusMessage("目标不可达：未找到有效路径")
-    return
-  }
-
-  player.path = path.slice(1)
-  player.moving = true
-  drawPath([{ x: player.x, y: player.y }, ...player.path])
 }
 
 export function createPointerHandlers({
@@ -124,6 +170,7 @@ export function createPointerHandlers({
   syncCamera,
   getViewportSize,
   onZoomPercentChange,
+  onManualNavigationStart,
 }: {
   camera: CameraState
   drag: DragState
@@ -136,6 +183,7 @@ export function createPointerHandlers({
   syncCamera: () => void
   getViewportSize: () => { width: number; height: number }
   onZoomPercentChange: (zoomPercent: number) => void
+  onManualNavigationStart?: () => void
 }) {
   const activePointers = new Map<number, PointerSample>()
   let primaryPointerId: number | null = null
@@ -243,7 +291,8 @@ export function createPointerHandlers({
       }
 
       longPressTriggered = true
-      beginPathTo({
+      onManualNavigationStart?.()
+      beginPathToScreen({
         camera,
         world,
         navigationGrid,
@@ -358,7 +407,8 @@ export function createPointerHandlers({
 
   const onPointerDown = (event: FederatedPointerEvent) => {
     if (event.pointerType === "mouse" && event.button === 2) {
-      beginPathTo({
+      onManualNavigationStart?.()
+      beginPathToScreen({
         camera,
         world,
         navigationGrid,

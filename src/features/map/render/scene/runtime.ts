@@ -8,7 +8,18 @@ import {
 import { advancePathMover, type PathMover } from "@/features/map/lib/movement"
 import { tickNpcSquad, type NpcSquadRuntime } from "@/features/map/lib/npc-squads"
 import type { NavigationGrid } from "@/features/map/lib/pathfinding"
+import { beginPathToWorld } from "@/features/map/render/scene/interaction"
 import type { WorldConfig, WorldPoint } from "@/features/map/types"
+
+export const FOLLOW_REPATH_COOLDOWN_MS = 500
+export const FOLLOW_REPATH_DISTANCE_THRESHOLD = 24
+export const FOLLOW_REPATH_STOP_DISTANCE = 12
+
+export type FollowState = {
+  targetSquadId: string | null
+  lastPlannedTarget: WorldPoint | null
+  repathCooldownMs: number
+}
 
 type TickSceneParams = {
   deltaMs: number
@@ -19,7 +30,77 @@ type TickSceneParams = {
   npcSquadRuntimes: NpcSquadRuntime[]
   navigationGrid: NavigationGrid
   world: WorldConfig
+  followState: FollowState
   updateNpcMarkerPosition: (squad: NpcSquadRuntime) => void
+}
+
+function tickFollowPath({
+  deltaMs,
+  movementTimeScale,
+  player,
+  drawPath,
+  npcSquadRuntimes,
+  navigationGrid,
+  followState,
+}: Pick<
+  TickSceneParams,
+  | "deltaMs"
+  | "movementTimeScale"
+  | "player"
+  | "drawPath"
+  | "npcSquadRuntimes"
+  | "navigationGrid"
+  | "followState"
+>) {
+  if (!followState.targetSquadId) {
+    return
+  }
+
+  const followTarget = npcSquadRuntimes.find((squad) => squad.id === followState.targetSquadId)
+
+  if (!followTarget) {
+    return
+  }
+
+  const scaledDeltaMs = Math.max(0, deltaMs) * Math.max(0, movementTimeScale)
+  followState.repathCooldownMs = Math.max(0, followState.repathCooldownMs - scaledDeltaMs)
+
+  const targetPoint = { x: followTarget.mover.x, y: followTarget.mover.y }
+  const distanceToTarget = Math.hypot(targetPoint.x - player.x, targetPoint.y - player.y)
+
+  if (distanceToTarget <= FOLLOW_REPATH_STOP_DISTANCE) {
+    return
+  }
+
+  const hasActivePath = player.moving && player.path.length > 0
+  const targetMovedDistance = followState.lastPlannedTarget
+    ? Math.hypot(
+      targetPoint.x - followState.lastPlannedTarget.x,
+      targetPoint.y - followState.lastPlannedTarget.y
+    )
+    : Number.POSITIVE_INFINITY
+  const targetMovedEnough =
+    !followState.lastPlannedTarget ||
+    targetMovedDistance > FOLLOW_REPATH_DISTANCE_THRESHOLD
+  const shouldRepath = !hasActivePath || targetMovedEnough
+
+  if (!shouldRepath || followState.repathCooldownMs > 0) {
+    return
+  }
+
+  const result = beginPathToWorld({
+    navigationGrid,
+    player,
+    drawPath,
+    target: targetPoint,
+    clearOnFailure: false,
+  })
+
+  if (result === "success") {
+    followState.lastPlannedTarget = targetPoint
+  }
+
+  followState.repathCooldownMs = FOLLOW_REPATH_COOLDOWN_MS
 }
 
 export function tickScene({
@@ -31,6 +112,7 @@ export function tickScene({
   npcSquadRuntimes,
   navigationGrid,
   world,
+  followState,
   updateNpcMarkerPosition,
 }: TickSceneParams) {
   const prevPlayerX = player.x
@@ -71,4 +153,14 @@ export function tickScene({
       updateNpcMarkerPosition(squad)
     }
   }
+
+  tickFollowPath({
+    deltaMs,
+    movementTimeScale,
+    player,
+    drawPath,
+    npcSquadRuntimes,
+    navigationGrid,
+    followState,
+  })
 }

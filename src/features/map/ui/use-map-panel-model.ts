@@ -90,6 +90,7 @@ export function useMapPanelModel() {
     focusedSquadId,
     lastResupplyNodeId,
     executeInteractionAction,
+    markSquadFollow,
   } = useMapInteraction({
     selectedNode,
     selectedSquad,
@@ -105,6 +106,10 @@ export function useMapPanelModel() {
   const handleSquadSelect = (squad: NpcSquadSnapshot) => {
     setSelection({ type: "squad", squad })
     setIsDetailsOpen(true)
+  }
+
+  const handleSquadFollow = (squad: NpcSquadSnapshot) => {
+    markSquadFollow(squad)
   }
 
   const handleDetailsOpenChange = (nextOpen: boolean) => {
@@ -136,6 +141,7 @@ export function useMapPanelModel() {
     lastResupplyNodeId,
     handleNodeSelect,
     handleSquadSelect,
+    handleSquadFollow,
     handleInteractionAction,
     handleDetailsOpenChange,
   }

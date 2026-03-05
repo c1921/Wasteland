@@ -7,17 +7,21 @@ import type { NpcSquadSnapshot } from "@/features/map/types"
 
 let latestOnNodeSelect: ((nodeId: string) => void) | undefined
 let latestOnSquadSelect: ((squad: NpcSquadSnapshot) => void) | undefined
+let latestOnSquadFollow: ((squad: NpcSquadSnapshot) => void) | undefined
 
 vi.mock("@/features/map/ui/pixi-map-canvas", () => ({
   PixiMapCanvas: ({
     onNodeSelect,
     onSquadSelect,
+    onSquadFollow,
   }: {
     onNodeSelect?: (nodeId: string) => void
     onSquadSelect?: (squad: NpcSquadSnapshot) => void
+    onSquadFollow?: (squad: NpcSquadSnapshot) => void
   }) => {
     latestOnNodeSelect = onNodeSelect
     latestOnSquadSelect = onSquadSelect
+    latestOnSquadFollow = onSquadFollow
     return (
       <div>
         地图画布
@@ -35,6 +39,12 @@ function selectNode(nodeId: string) {
 function selectSquad(squad: NpcSquadSnapshot) {
   act(() => {
     latestOnSquadSelect?.(squad)
+  })
+}
+
+function followSquad(squad: NpcSquadSnapshot) {
+  act(() => {
+    latestOnSquadFollow?.(squad)
   })
 }
 
@@ -56,6 +66,7 @@ describe("MapPanel", () => {
   beforeEach(() => {
     latestOnNodeSelect = undefined
     latestOnSquadSelect = undefined
+    latestOnSquadFollow = undefined
   })
 
   it("opens sheet and renders selected location details", () => {
@@ -151,5 +162,20 @@ describe("MapPanel", () => {
 
     expect(screen.getByText("关注状态: 已关注")).toBeTruthy()
     expect(screen.getByText("已将灰狼巡逻组-1标记为关注目标。")).toBeTruthy()
+  })
+
+  it("keeps sheet closed on map right-follow and syncs follow state", () => {
+    render(<MapPanel />)
+
+    const squad = buildSquad("风痕斥候组-2")
+    followSquad(squad)
+
+    expect(screen.queryByRole("dialog", { name: "风痕斥候组-2" })).toBeNull()
+
+    selectSquad(squad)
+
+    expect(screen.getByRole("dialog", { name: "风痕斥候组-2" })).toBeTruthy()
+    expect(screen.getByText("关注状态: 已关注")).toBeTruthy()
+    expect(screen.getByText("已将风痕斥候组-2标记为关注目标。")).toBeTruthy()
   })
 })

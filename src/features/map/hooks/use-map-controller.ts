@@ -25,6 +25,7 @@ type UseMapControllerParams = {
   movementTimeScale: number
   onNodeSelect?: (nodeId: string) => void
   onSquadSelect?: (squad: NpcSquadSnapshot) => void
+  onSquadFollow?: (squad: NpcSquadSnapshot) => void
   createRuntime?: CreateMapRuntime
 }
 
@@ -39,12 +40,14 @@ export function useMapController({
   movementTimeScale,
   onNodeSelect,
   onSquadSelect,
+  onSquadFollow,
   createRuntime = createPixiMapRuntime,
 }: UseMapControllerParams) {
   const runtimeRef = useRef<MapRuntime | null>(null)
   const statusTimerRef = useRef<number | null>(null)
   const onNodeSelectRef = useRef<typeof onNodeSelect>(onNodeSelect)
   const onSquadSelectRef = useRef<typeof onSquadSelect>(onSquadSelect)
+  const onSquadFollowRef = useRef<typeof onSquadFollow>(onSquadFollow)
   const movementTimeScaleRef = useRef(movementTimeScale)
   const [tooltip, setTooltip] = useState<MapTooltipState | null>(null)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -59,6 +62,10 @@ export function useMapController({
   useEffect(() => {
     onSquadSelectRef.current = onSquadSelect
   }, [onSquadSelect])
+
+  useEffect(() => {
+    onSquadFollowRef.current = onSquadFollow
+  }, [onSquadFollow])
 
   useEffect(() => {
     movementTimeScaleRef.current = movementTimeScale
@@ -121,6 +128,11 @@ export function useMapController({
           onSquadSelect: (squad) => {
             if (!cancelled) {
               onSquadSelectRef.current?.(squad)
+            }
+          },
+          onSquadFollow: (squad) => {
+            if (!cancelled) {
+              onSquadFollowRef.current?.(squad)
             }
           },
         },

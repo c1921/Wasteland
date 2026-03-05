@@ -133,6 +133,32 @@ export function useMapInteraction({
     return targetLogs.slice().reverse()
   }, [sessionState.logs, target])
 
+  const markSquadFollow = useCallback((squad: NpcSquadSnapshot) => {
+    const message = resolveSquadMessage("squad-follow", squad)
+
+    if (!message) {
+      console.warn("[map] unresolved squad follow message", squad.id)
+      return
+    }
+
+    const entry = {
+      id: `interaction-log-${++logIdRef.current}`,
+      target: {
+        type: "squad" as const,
+        squadId: squad.id,
+      },
+      actionId: "squad-follow" as const,
+      message,
+      createdAt: Date.now(),
+    }
+
+    setSessionState((prev) => ({
+      focusedSquadId: squad.id,
+      lastResupplyNodeId: prev.lastResupplyNodeId,
+      logs: appendInteractionLog(prev.logs, entry),
+    }))
+  }, [])
+
   const executeInteractionAction = useCallback(
     (actionId: MapInteractionActionId) => {
       if (!target) {
@@ -184,6 +210,11 @@ export function useMapInteraction({
         return
       }
 
+      if (actionId === "squad-follow") {
+        markSquadFollow(selectedSquad)
+        return
+      }
+
       const message = resolveSquadMessage(actionId, selectedSquad)
 
       if (!message) {
@@ -200,7 +231,7 @@ export function useMapInteraction({
       }
 
       setSessionState((prev) => ({
-        focusedSquadId: actionId === "squad-follow" ? selectedSquad.id : prev.focusedSquadId,
+        focusedSquadId: prev.focusedSquadId,
         lastResupplyNodeId: prev.lastResupplyNodeId,
         logs: appendInteractionLog(prev.logs, entry),
       }))
@@ -220,7 +251,14 @@ export function useMapInteraction({
         })
       }
     },
-    [onBattleRequested, onTradeRequested, selectedNode, selectedSquad, target]
+    [
+      markSquadFollow,
+      onBattleRequested,
+      onTradeRequested,
+      selectedNode,
+      selectedSquad,
+      target,
+    ]
   )
 
   return {
@@ -229,5 +267,6 @@ export function useMapInteraction({
     focusedSquadId: sessionState.focusedSquadId,
     lastResupplyNodeId: sessionState.lastResupplyNodeId,
     executeInteractionAction,
+    markSquadFollow,
   }
 }

@@ -35,10 +35,16 @@ import {
 import {
   createPointerHandlers,
   createWheelHandler,
+  beginPathToWorld,
+  resolveRouteFailureMessage,
   zoomInByStep,
   zoomOutByStep,
 } from "@/features/map/render/scene/interaction"
-import { tickScene } from "@/features/map/render/scene/runtime"
+import {
+  FOLLOW_REPATH_COOLDOWN_MS,
+  tickScene,
+  type FollowState,
+} from "@/features/map/render/scene/runtime"
 import type {
   CameraState,
   CreatePixiMapSceneParams,
@@ -87,6 +93,11 @@ export async function createPixiMapScene({
     speed: PLAYER_SPEED,
     moving: false,
     path: [] as WorldPoint[],
+  }
+  const followState: FollowState = {
+    targetSquadId: null,
+    lastPlannedTarget: null,
+    repathCooldownMs: 0,
   }
   let movementTimeScale = Number.isFinite(initialMovementTimeScale)
     ? Math.max(0, initialMovementTimeScale)
@@ -139,6 +150,52 @@ export async function createPixiMapScene({
     drawPath(pathLayer, points)
   }
 
+  const clearFollowTarget = () => {
+    followState.targetSquadId = null
+    followState.lastPlannedTarget = null
+    followState.repathCooldownMs = 0
+  }
+
+  const routeToWorldPoint = (target: WorldPoint) => {
+    const result = beginPathToWorld({
+      navigationGrid,
+      player,
+      drawPath: drawRoute,
+      target,
+      clearOnFailure: true,
+    })
+    const message = resolveRouteFailureMessage(result)
+
+    if (message) {
+      callbacks.onStatusMessage(message)
+    }
+  }
+
+  const beginManualRouteToWorldPoint = (target: WorldPoint) => {
+    clearFollowTarget()
+    routeToWorldPoint(target)
+  }
+
+  const startFollowingSquad = (squadId: string, position: WorldPoint) => {
+    followState.targetSquadId = squadId
+    followState.lastPlannedTarget = null
+    followState.repathCooldownMs = 0
+
+    const result = beginPathToWorld({
+      navigationGrid,
+      player,
+      drawPath: drawRoute,
+      target: position,
+      clearOnFailure: false,
+    })
+
+    if (result === "success") {
+      followState.lastPlannedTarget = { ...position }
+    }
+
+    followState.repathCooldownMs = FOLLOW_REPATH_COOLDOWN_MS
+  }
+
   const pointerHandlers = createPointerHandlers({
     camera,
     drag,
@@ -151,6 +208,7 @@ export async function createPixiMapScene({
     syncCamera,
     getViewportSize,
     onZoomPercentChange: callbacks.onZoomPercentChange,
+    onManualNavigationStart: clearFollowTarget,
   })
 
   const tick = () => {
@@ -163,6 +221,7 @@ export async function createPixiMapScene({
       npcSquadRuntimes,
       navigationGrid,
       world,
+      followState,
       updateNpcMarkerPosition: (squad) => {
         updateNpcMarkerPosition(npcMarkers, squad)
       },
@@ -212,6 +271,7 @@ export async function createPixiMapScene({
     showTooltip,
     clearTooltip,
     onNodeSelect: callbacks.onNodeSelect,
+    onNodeNavigate: beginManualRouteToWorldPoint,
   })
   drawNpcSquads({
     npcLayer,
@@ -220,6 +280,10 @@ export async function createPixiMapScene({
     showTooltip,
     clearTooltip,
     onSquadSelect: callbacks.onSquadSelect,
+    onSquadFollow: (squad) => {
+      startFollowingSquad(squad.id, squad.position)
+      callbacks.onSquadFollow?.(squad)
+    },
   })
   drawPlayerMarker(playerMarker, player)
   centerCamera()

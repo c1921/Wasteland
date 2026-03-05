@@ -16,6 +16,7 @@ export async function createPixiMapRuntime({
       onZoomPercentChange: events.onZoomPercentChange,
       onNodeSelect: events.onNodeSelect,
       onSquadSelect: events.onSquadSelect,
+      onSquadFollow: events.onSquadFollow,
     },
   })
 

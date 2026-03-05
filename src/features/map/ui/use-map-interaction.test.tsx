@@ -35,11 +35,13 @@ function buildSquad(id: string, name: string, moving = false): NpcSquadSnapshot 
 function InteractionHarness({
   selectedNode,
   selectedSquad,
+  followTarget,
   onTradeRequested,
   onBattleRequested,
 }: {
   selectedNode: MapNode | null
   selectedSquad: NpcSquadSnapshot | null
+  followTarget?: NpcSquadSnapshot | null
   onTradeRequested?: (target: TradeTargetRef) => void
   onBattleRequested?: (payload: { squadId: string; squadName: string }) => void
 }) {
@@ -49,6 +51,7 @@ function InteractionHarness({
     focusedSquadId,
     lastResupplyNodeId,
     executeInteractionAction,
+    markSquadFollow,
   } = useMapInteraction({
     selectedNode,
     selectedSquad,
@@ -77,6 +80,15 @@ function InteractionHarness({
         }}
       >
         force-squad-follow
+      </button>
+      <button
+        onClick={() => {
+          if (followTarget) {
+            markSquadFollow(followTarget)
+          }
+        }}
+      >
+        direct-squad-follow
       </button>
       {interactionLogs.map((entry) => (
         <p key={entry.id}>{entry.message}</p>
@@ -198,5 +210,22 @@ describe("useMapInteraction", () => {
       squadName: "碎铁巡逻组-9",
     })
     expect(screen.getByText("你已对碎铁巡逻组-9发起战斗。")).toBeTruthy()
+  })
+
+  it("marks follow state directly without requiring current squad selection", () => {
+    const squad = buildSquad("squad-7", "风痕斥候组-7", true)
+    const { rerender } = render(
+      <InteractionHarness
+        selectedNode={nodeA}
+        selectedSquad={null}
+        followTarget={squad}
+      />
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "direct-squad-follow" }))
+    rerender(<InteractionHarness selectedNode={null} selectedSquad={squad} />)
+
+    expect(screen.getByTestId("focused-squad").textContent).toBe("squad-7")
+    expect(screen.getByText("已将风痕斥候组-7标记为关注目标。")).toBeTruthy()
   })
 })

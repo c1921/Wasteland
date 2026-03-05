@@ -80,6 +80,7 @@ function createContext() {
   const onStatusMessage = vi.fn<(message: string) => void>()
   const syncCamera = vi.fn()
   const onZoomPercentChange = vi.fn<(zoomPercent: number) => void>()
+  const onManualNavigationStart = vi.fn()
 
   const handlers = createPointerHandlers({
     camera,
@@ -93,6 +94,7 @@ function createContext() {
     syncCamera,
     getViewportSize: () => ({ width: 800, height: 600 }),
     onZoomPercentChange,
+    onManualNavigationStart,
   })
 
   return {
@@ -104,6 +106,7 @@ function createContext() {
     onStatusMessage,
     syncCamera,
     onZoomPercentChange,
+    onManualNavigationStart,
     handlers,
   }
 }
@@ -139,6 +142,7 @@ describe("map scene pointer interaction", () => {
       { x: 120, y: 220 },
       { x: 340, y: 260 },
     ])
+    expect(context.onManualNavigationStart).toHaveBeenCalledTimes(1)
   })
 
   it("keeps mouse left-drag panning behavior", () => {
@@ -221,6 +225,7 @@ describe("map scene pointer interaction", () => {
     expect(vi.mocked(findPathAStar)).toHaveBeenCalledTimes(1)
     expect(context.player.moving).toBe(true)
     expect(context.player.path).toEqual([{ x: 600, y: 500 }])
+    expect(context.onManualNavigationStart).toHaveBeenCalledTimes(1)
   })
 
   it("cancels long-press after touch drag threshold and pans camera", () => {

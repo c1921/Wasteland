@@ -33,6 +33,7 @@ export type SceneCallbacks = {
   onZoomPercentChange: (zoomPercent: number) => void
   onNodeSelect: (nodeId: string) => void
   onSquadSelect: (squad: NpcSquadSnapshot) => void
+  onSquadFollow?: (squad: NpcSquadSnapshot) => void
 }
 
 export type CreatePixiMapSceneParams = {

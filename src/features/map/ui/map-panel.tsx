@@ -59,6 +59,7 @@ export function MapPanel() {
     lastResupplyNodeId,
     handleNodeSelect,
     handleSquadSelect,
+    handleSquadFollow,
     handleInteractionAction,
     handleDetailsOpenChange,
   } = useMapPanelModel()
@@ -73,6 +74,7 @@ export function MapPanel() {
           npcSquads={npcSquads}
           onNodeSelect={handleNodeSelect}
           onSquadSelect={handleSquadSelect}
+          onSquadFollow={handleSquadFollow}
           className="h-full w-full rounded-none border-0"
         />
       </section>

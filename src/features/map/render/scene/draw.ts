@@ -34,6 +34,16 @@ function traceChevron(marker: Graphics, size: number) {
   marker.moveTo(-wing, shoulderY).lineTo(0, -size).lineTo(wing, shoulderY)
 }
 
+function isSecondaryPointer(event: FederatedPointerEvent) {
+  return event.button === 2
+}
+
+function suppressNativeContextMenu(event: FederatedPointerEvent) {
+  if (typeof event.preventDefault === "function") {
+    event.preventDefault()
+  }
+}
+
 export function drawBackground(
   backgroundLayer: Graphics,
   world: WorldConfig,
@@ -149,12 +159,14 @@ export function drawNodes({
   showTooltip,
   clearTooltip,
   onNodeSelect,
+  onNodeNavigate,
 }: {
   nodeLayer: Container
   nodes: MapNode[]
   showTooltip: (name: string, subtitle: string, x: number, y: number) => void
   clearTooltip: () => void
   onNodeSelect: (nodeId: string) => void
+  onNodeNavigate: (target: WorldPoint) => void
 }) {
   const staleNodes = nodeLayer.removeChildren()
 
@@ -165,6 +177,7 @@ export function drawNodes({
   for (const node of nodes) {
     const marker = new Graphics()
     const nodeStyle = NODE_STYLE_MAP[node.kind]
+    let consumedSecondaryTap = false
 
     marker
       .circle(0, 0, 16)
@@ -188,9 +201,25 @@ export function drawNodes({
     marker.on("pointerout", clearTooltip)
     marker.on("pointerdown", (event: FederatedPointerEvent) => {
       event.stopPropagation()
+
+      if (!isSecondaryPointer(event)) {
+        consumedSecondaryTap = false
+        return
+      }
+
+      consumedSecondaryTap = true
+      suppressNativeContextMenu(event)
+      onNodeNavigate({ x: node.x, y: node.y })
     })
     marker.on("pointertap", (event: FederatedPointerEvent) => {
       event.stopPropagation()
+
+      if (consumedSecondaryTap || isSecondaryPointer(event)) {
+        consumedSecondaryTap = false
+        suppressNativeContextMenu(event)
+        return
+      }
+
       onNodeSelect(node.id)
     })
 
@@ -205,6 +234,7 @@ export function drawNpcSquads({
   showTooltip,
   clearTooltip,
   onSquadSelect,
+  onSquadFollow,
 }: {
   npcLayer: Container
   npcSquadRuntimes: NpcSquadRuntime[]
@@ -212,6 +242,7 @@ export function drawNpcSquads({
   showTooltip: (name: string, subtitle: string, x: number, y: number) => void
   clearTooltip: () => void
   onSquadSelect: (snapshot: ReturnType<typeof toNpcSquadSnapshot>) => void
+  onSquadFollow: (snapshot: ReturnType<typeof toNpcSquadSnapshot>) => void
 }) {
   const staleMarkers = npcLayer.removeChildren()
 
@@ -225,6 +256,7 @@ export function drawNpcSquads({
     const marker = new Graphics()
     const outerDiamond = buildDiamond(11.8)
     const ringDiamond = buildDiamond(6.8)
+    let consumedSecondaryTap = false
 
     marker
       .poly(outerDiamond)
@@ -253,9 +285,25 @@ export function drawNpcSquads({
     marker.on("pointerout", clearTooltip)
     marker.on("pointerdown", (event: FederatedPointerEvent) => {
       event.stopPropagation()
+
+      if (!isSecondaryPointer(event)) {
+        consumedSecondaryTap = false
+        return
+      }
+
+      consumedSecondaryTap = true
+      suppressNativeContextMenu(event)
+      onSquadFollow(toNpcSquadSnapshot(squad))
     })
     marker.on("pointertap", (event: FederatedPointerEvent) => {
       event.stopPropagation()
+
+      if (consumedSecondaryTap || isSecondaryPointer(event)) {
+        consumedSecondaryTap = false
+        suppressNativeContextMenu(event)
+        return
+      }
+
       onSquadSelect(toNpcSquadSnapshot(squad))
     })
 

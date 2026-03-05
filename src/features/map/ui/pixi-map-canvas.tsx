@@ -20,6 +20,7 @@ type PixiMapCanvasProps = {
   npcSquads?: NpcSquadTemplate[]
   onNodeSelect?: (nodeId: string) => void
   onSquadSelect?: (squad: NpcSquadSnapshot) => void
+  onSquadFollow?: (squad: NpcSquadSnapshot) => void
   className?: string
 }
 
@@ -30,6 +31,7 @@ export function PixiMapCanvas({
   npcSquads,
   onNodeSelect,
   onSquadSelect,
+  onSquadFollow,
   className,
 }: PixiMapCanvasProps) {
   const hostRef = useRef<HTMLDivElement | null>(null)
@@ -44,6 +46,7 @@ export function PixiMapCanvas({
     movementTimeScale: isPaused ? 0 : speed,
     onNodeSelect,
     onSquadSelect,
+    onSquadFollow,
   })
 
   useEffect(() => {
