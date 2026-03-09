@@ -52,7 +52,7 @@ export function GameShell() {
     }),
     [requestOpenTrade, selectedTradeTarget]
   )
-  const isMapPage = activeNav === "map"
+  const isCanvasPage = activeNav === "map" || activeNav === "base"
 
   return (
     <BattleNavigationProvider value={battleNavigationContextValue}>
@@ -65,7 +65,7 @@ export function GameShell() {
           />
           <main
             className={
-              isMapPage
+              isCanvasPage
                 ? "ml-10 md:ml-14 flex h-screen flex-col overflow-hidden"
                 : "ml-10 md:ml-14 flex min-h-screen flex-col"
             }
@@ -73,7 +73,7 @@ export function GameShell() {
             <TopTimeBar />
             <div
               className={
-                isMapPage ? "min-h-0 flex-1" : "min-h-0 flex-1 p-2 md:p-6"
+                isCanvasPage ? "min-h-0 flex-1" : "min-h-0 flex-1 p-2 md:p-6"
               }
             >
               <ActivePanel activeNav={activeNav} />
@@ -115,7 +115,7 @@ function PanelFallback({ activeNav }: ActivePanelProps) {
 function ActivePanel({ activeNav }: ActivePanelProps) {
   const PanelComponent = PANEL_REGISTRY[activeNav]
 
-  if (activeNav === "map") {
+  if (activeNav === "map" || activeNav === "base") {
     return <PanelComponent />
   }
 
