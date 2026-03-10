@@ -8,11 +8,9 @@ import type {
   PlacementPreview,
   TerrainKind,
 } from "@/features/base/types"
+import type { MapThemePalette } from "@/features/map/render/map-theme"
 
-type BasePalette = {
-  background: number
-  grid: number
-  subgrid: number
+type BaseAccentPalette = {
   grass: number
   sand: number
   mountain: number
@@ -27,10 +25,16 @@ type BasePalette = {
   previewInvalid: number
 }
 
-const PALETTE: BasePalette = {
-  background: 0x10141a,
-  grid: 0x334250,
-  subgrid: 0x25303a,
+const BASE_REFERENCE_CELL_SIZE = 48
+const GRID_ALPHA = 0.18
+const SUBGRID_ALPHA = 0.08
+const NON_GRASS_TERRAIN_ALPHA = 0.15
+const PLACED_ENTITY_ALPHA = 0.3
+const TERRAIN_DESATURATION = 0.78
+const TERRAIN_BACKGROUND_BLEND = 0.68
+const TERRAIN_GRID_BLEND = 0.14
+
+const PALETTE: BaseAccentPalette = {
   grass: 0x273626,
   sand: 0x524b34,
   mountain: 0x4b4546,
@@ -45,6 +49,60 @@ const PALETTE: BasePalette = {
   previewInvalid: 0xff8a74,
 }
 
+function clampColorChannel(value: number) {
+  return Math.min(255, Math.max(0, Math.round(value)))
+}
+
+function toPixiHexColor(r: number, g: number, b: number) {
+  return (clampColorChannel(r) << 16) | (clampColorChannel(g) << 8) | clampColorChannel(b)
+}
+
+function splitPixiHexColor(color: number) {
+  return {
+    r: (color >> 16) & 0xff,
+    g: (color >> 8) & 0xff,
+    b: color & 0xff,
+  }
+}
+
+function mixChannel(start: number, end: number, amount: number) {
+  return start + (end - start) * amount
+}
+
+function blendColors(color: number, target: number, amount: number) {
+  const source = splitPixiHexColor(color)
+  const destination = splitPixiHexColor(target)
+
+  return toPixiHexColor(
+    mixChannel(source.r, destination.r, amount),
+    mixChannel(source.g, destination.g, amount),
+    mixChannel(source.b, destination.b, amount)
+  )
+}
+
+function desaturateColor(color: number, amount: number) {
+  const { r, g, b } = splitPixiHexColor(color)
+  const grayscale = 0.299 * r + 0.587 * g + 0.114 * b
+
+  return toPixiHexColor(
+    mixChannel(r, grayscale, amount),
+    mixChannel(g, grayscale, amount),
+    mixChannel(b, grayscale, amount)
+  )
+}
+
+function getWorldScale(world: BaseWorldConfig) {
+  return world.cellSize / BASE_REFERENCE_CELL_SIZE
+}
+
+function scaleStrokeWidth(
+  world: BaseWorldConfig,
+  width: number,
+  minimumWidth = 0.75
+) {
+  return Math.max(minimumWidth, width * getWorldScale(world))
+}
+
 function resolveTerrainColor(terrainKind: TerrainKind) {
   switch (terrainKind) {
     case "grass":
@@ -55,8 +113,6 @@ function resolveTerrainColor(terrainKind: TerrainKind) {
       return PALETTE.mountain
     case "deep-water":
       return PALETTE.deepWater
-    default:
-      return PALETTE.background
   }
 }
 
@@ -80,6 +136,34 @@ function resolveBuildingColor(definitionId: string) {
   }
 }
 
+function resolveTerrainTint(terrainKind: TerrainKind, mapTheme: MapThemePalette) {
+  const desaturated = desaturateColor(resolveTerrainColor(terrainKind), TERRAIN_DESATURATION)
+  const backgroundMixed = blendColors(
+    desaturated,
+    mapTheme.background,
+    TERRAIN_BACKGROUND_BLEND
+  )
+
+  return blendColors(backgroundMixed, mapTheme.grid, TERRAIN_GRID_BLEND)
+}
+
+export function resolveTerrainFillStyle(
+  terrainKind: TerrainKind,
+  mapTheme: MapThemePalette
+) {
+  if (terrainKind === "grass") {
+    return {
+      color: mapTheme.background,
+      alpha: 0,
+    }
+  }
+
+  return {
+    color: resolveTerrainTint(terrainKind, mapTheme),
+    alpha: NON_GRASS_TERRAIN_ALPHA,
+  }
+}
+
 function drawEdgeSegment(
   layer: Graphics,
   world: BaseWorldConfig,
@@ -95,14 +179,24 @@ function drawEdgeSegment(
     layer
       .moveTo(startX, startY)
       .lineTo(startX + world.cellSize, startY)
-      .stroke({ color, width, alpha, cap: "round" })
+      .stroke({
+        color,
+        width: scaleStrokeWidth(world, width),
+        alpha,
+        cap: "round",
+      })
     return
   }
 
   layer
     .moveTo(startX, startY)
     .lineTo(startX, startY + world.cellSize)
-    .stroke({ color, width, alpha, cap: "round" })
+    .stroke({
+      color,
+      width: scaleStrokeWidth(world, width),
+      alpha,
+      cap: "round",
+    })
 }
 
 function drawAreaRect(params: {
@@ -114,6 +208,7 @@ function drawAreaRect(params: {
   color: number
   alpha: number
   strokeWidth?: number
+  strokeAlpha?: number
 }) {
   const {
     layer,
@@ -124,6 +219,7 @@ function drawAreaRect(params: {
     color,
     alpha,
     strokeWidth = 1.2,
+    strokeAlpha = Math.min(1, alpha + 0.25),
   } = params
   const subcellSize = world.cellSize / world.subgridDivisions
   const x = origin.subcol * subcellSize
@@ -132,26 +228,40 @@ function drawAreaRect(params: {
   const height = heightSubcells * subcellSize
 
   layer
-    .roundRect(x, y, width, height, Math.max(3, subcellSize * 0.22))
+    .roundRect(x, y, width, height, Math.max(2.5, subcellSize * 0.22))
     .fill({ color, alpha })
-    .stroke({ color, alpha: Math.min(1, alpha + 0.25), width: strokeWidth })
+    .stroke({
+      color,
+      alpha: strokeAlpha,
+      width: scaleStrokeWidth(world, strokeWidth),
+    })
 }
 
-export function drawBackground(backgroundLayer: Graphics, world: BaseWorldConfig) {
+export function drawBackground(
+  backgroundLayer: Graphics,
+  world: BaseWorldConfig,
+  mapTheme: MapThemePalette
+) {
   backgroundLayer.clear()
-  backgroundLayer.rect(0, 0, world.width, world.height).fill({ color: PALETTE.background })
+  backgroundLayer.rect(0, 0, world.width, world.height).fill({ color: mapTheme.background })
 }
 
 export function drawTerrain(
   terrainLayer: Graphics,
   world: BaseWorldConfig,
-  terrain: readonly TerrainKind[]
+  terrain: readonly TerrainKind[],
+  mapTheme: MapThemePalette
 ) {
   terrainLayer.clear()
 
   for (let row = 0; row < world.rows; row += 1) {
     for (let col = 0; col < world.cols; col += 1) {
-      const terrainKind = terrain[row * world.cols + col]
+      const terrainKind = terrain[row * world.cols + col] ?? "grass"
+      const fillStyle = resolveTerrainFillStyle(terrainKind, mapTheme)
+
+      if (fillStyle.alpha <= 0) {
+        continue
+      }
 
       terrainLayer
         .rect(
@@ -160,7 +270,7 @@ export function drawTerrain(
           world.cellSize,
           world.cellSize
         )
-        .fill({ color: resolveTerrainColor(terrainKind), alpha: 0.92 })
+        .fill(fillStyle)
     }
   }
 }
@@ -169,7 +279,8 @@ export function drawGrid(
   gridLayer: Graphics,
   subgridLayer: Graphics,
   world: BaseWorldConfig,
-  showSubgrid: boolean
+  showSubgrid: boolean,
+  mapTheme: MapThemePalette
 ) {
   gridLayer.clear()
   subgridLayer.clear()
@@ -179,7 +290,11 @@ export function drawGrid(
     gridLayer
       .moveTo(x, 0)
       .lineTo(x, world.height)
-      .stroke({ color: PALETTE.grid, width: 1, alpha: 0.42 })
+      .stroke({
+        color: mapTheme.grid,
+        width: scaleStrokeWidth(world, 1),
+        alpha: GRID_ALPHA,
+      })
   }
 
   for (let row = 0; row <= world.rows; row += 1) {
@@ -187,7 +302,11 @@ export function drawGrid(
     gridLayer
       .moveTo(0, y)
       .lineTo(world.width, y)
-      .stroke({ color: PALETTE.grid, width: 1, alpha: 0.42 })
+      .stroke({
+        color: mapTheme.grid,
+        width: scaleStrokeWidth(world, 1),
+        alpha: GRID_ALPHA,
+      })
   }
 
   if (!showSubgrid) {
@@ -205,7 +324,11 @@ export function drawGrid(
     subgridLayer
       .moveTo(x, 0)
       .lineTo(x, world.height)
-      .stroke({ color: PALETTE.subgrid, width: 1, alpha: 0.28 })
+      .stroke({
+        color: mapTheme.grid,
+        width: scaleStrokeWidth(world, 1),
+        alpha: SUBGRID_ALPHA,
+      })
   }
 
   for (let subrow = 0; subrow <= world.rows * world.subgridDivisions; subrow += 1) {
@@ -217,7 +340,11 @@ export function drawGrid(
     subgridLayer
       .moveTo(0, y)
       .lineTo(world.width, y)
-      .stroke({ color: PALETTE.subgrid, width: 1, alpha: 0.28 })
+      .stroke({
+        color: mapTheme.grid,
+        width: scaleStrokeWidth(world, 1),
+        alpha: SUBGRID_ALPHA,
+      })
   }
 }
 
@@ -234,7 +361,14 @@ export function drawLayout(
     const color = resolveBuildingColor(building.definitionId)
 
     if (building.footprint.kind === "edge") {
-      drawEdgeSegment(structureLayer, world, building.footprint.edge, color, 5.5)
+      drawEdgeSegment(
+        structureLayer,
+        world,
+        building.footprint.edge,
+        color,
+        5.5,
+        PLACED_ENTITY_ALPHA
+      )
       continue
     }
 
@@ -245,7 +379,8 @@ export function drawLayout(
       widthSubcells: building.footprint.widthSubcells,
       heightSubcells: building.footprint.heightSubcells,
       color,
-      alpha: 0.72,
+      alpha: PLACED_ENTITY_ALPHA,
+      strokeAlpha: PLACED_ENTITY_ALPHA,
     })
   }
 }
@@ -261,15 +396,21 @@ export function drawSelection(
   }
 
   if (selection.type === "terrain") {
+    const inset = Math.max(1, Math.round(getWorldScale(world)))
+
     overlayLayer
       .roundRect(
-        selection.cell.col * world.cellSize + 1,
-        selection.cell.row * world.cellSize + 1,
-        world.cellSize - 2,
-        world.cellSize - 2,
-        6
+        selection.cell.col * world.cellSize + inset,
+        selection.cell.row * world.cellSize + inset,
+        world.cellSize - inset * 2,
+        world.cellSize - inset * 2,
+        Math.max(4, world.cellSize * 0.12)
       )
-      .stroke({ color: PALETTE.selection, width: 2, alpha: 0.92 })
+      .stroke({
+        color: PALETTE.selection,
+        width: scaleStrokeWidth(world, 2, 1.2),
+        alpha: 0.92,
+      })
     return
   }
 

@@ -40,6 +40,11 @@ import {
   drawTerrain,
   redrawOverlay,
 } from "@/features/base/render/scene/draw"
+import {
+  observeThemeClassChange,
+  resolveMapThemePalette,
+  type MapThemePalette,
+} from "@/features/map/render/map-theme"
 import type {
   CameraState,
   CreatePixiBaseSceneParams,
@@ -123,6 +128,8 @@ export async function createPixiBaseScene({
   let wheelHandler: ((event: WheelEvent) => void) | null = null
   let keydownHandler: ((event: KeyboardEvent) => void) | null = null
   let keyupHandler: ((event: KeyboardEvent) => void) | null = null
+  let stopThemeObserver: (() => void) | null = null
+  let mapTheme: MapThemePalette = resolveMapThemePalette()
   let currentLayout: BaseLayoutState = {
     buildings: initialLayout.buildings.map((building) => ({
       ...building,
@@ -194,7 +201,7 @@ export async function createPixiBaseScene({
   const syncCamera = () => {
     clampCamera(camera, app.renderer.width, app.renderer.height, world)
     applyCamera(worldContainer, camera)
-    drawGrid(gridLayer, subgridLayer, world, camera.zoom >= SUBGRID_VISIBLE_AT_ZOOM)
+    drawGrid(gridLayer, subgridLayer, world, camera.zoom >= SUBGRID_VISIBLE_AT_ZOOM, mapTheme)
   }
 
   const centerCamera = () => {
@@ -208,6 +215,13 @@ export async function createPixiBaseScene({
   const renderLayout = () => {
     drawLayout(structureLayer, buildingLayer, world, currentLayout)
     redrawOverlay(overlayLayer, world, currentLayout, currentSelection, currentPreview)
+  }
+
+  const syncTheme = (nextTheme = resolveMapThemePalette()) => {
+    mapTheme = nextTheme
+    drawBackground(backgroundLayer, world, mapTheme)
+    drawTerrain(terrainLayer, world, terrain, mapTheme)
+    drawGrid(gridLayer, subgridLayer, world, camera.zoom >= SUBGRID_VISIBLE_AT_ZOOM, mapTheme)
   }
 
   const setSelection = (nextSelection: BaseSelection | null) => {
@@ -630,8 +644,7 @@ export async function createPixiBaseScene({
   worldContainer.addChild(overlayLayer)
   app.stage.addChild(worldContainer)
 
-  drawBackground(backgroundLayer, world)
-  drawTerrain(terrainLayer, world, terrain)
+  syncTheme(mapTheme)
   renderLayout()
   centerCamera()
 
@@ -681,6 +694,11 @@ export async function createPixiBaseScene({
     }
   })
   resizeObserver.observe(host)
+  stopThemeObserver = observeThemeClassChange(() => {
+    if (!destroyed) {
+      syncTheme()
+    }
+  })
 
   return {
     zoomIn: () => {
@@ -701,6 +719,8 @@ export async function createPixiBaseScene({
       callbacks.onPreviewChange(null)
       pressedKeys.clear()
       activePointers.clear()
+      stopThemeObserver?.()
+      stopThemeObserver = null
       resizeObserver?.disconnect()
       resizeObserver = null
 

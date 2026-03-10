@@ -9,10 +9,10 @@ import type {
 export const WASTELAND_BASE_WORLD_CONFIG: BaseWorldConfig = {
   cols: 48,
   rows: 48,
-  cellSize: 48,
+  cellSize: 40,
   subgridDivisions: 3,
-  width: 48 * 48,
-  height: 48 * 48,
+  width: 48 * 40,
+  height: 48 * 40,
   minZoom: 0.4,
   maxZoom: 2.6,
   defaultZoom: 0.9,
