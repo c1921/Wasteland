@@ -2,6 +2,10 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { useEffect, useRef, useState } from "react"
 import { describe, expect, it, vi } from "vitest"
 
+vi.mock("@/engine/runtime/pixi-base-runtime", () => ({
+  createPixiBaseRuntime: vi.fn(),
+}))
+
 import { useBaseController } from "@/features/base/hooks/use-base-controller"
 import type {
   BaseEditorState,

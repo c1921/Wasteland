@@ -163,7 +163,7 @@ describe("base scene draw helpers", () => {
     })
   })
 
-  it("renders placed structures and area buildings at 50% opacity", () => {
+  it("renders placed structures and area buildings at 30% opacity", () => {
     const structureLayer = new pixiMock.MockGraphics()
     const buildingLayer = new pixiMock.MockGraphics()
     const layout: BaseLayoutState = {
@@ -205,7 +205,7 @@ describe("base scene draw helpers", () => {
     expect(structureStroke?.method).toBe("stroke")
     expect(structureStroke?.args[0]).toMatchObject({
       color: 0xc7b38b,
-      alpha: 0.5,
+      alpha: 0.3,
       cap: "round",
     })
     expect((structureStroke?.args[0] as { width: number }).width).toBeCloseTo((5.5 * 40) / 48)
@@ -215,7 +215,7 @@ describe("base scene draw helpers", () => {
       args: [
         {
           color: 0xa3b37a,
-          alpha: 0.5,
+          alpha: 0.3,
         },
       ],
     })
@@ -224,7 +224,7 @@ describe("base scene draw helpers", () => {
       args: [
         {
           color: 0xa3b37a,
-          alpha: 0.5,
+          alpha: 0.3,
           width: 1,
         },
       ],
