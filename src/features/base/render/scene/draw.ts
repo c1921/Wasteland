@@ -147,10 +147,7 @@ function resolveTerrainTint(terrainKind: TerrainKind, mapTheme: MapThemePalette)
   return blendColors(backgroundMixed, mapTheme.grid, TERRAIN_GRID_BLEND)
 }
 
-export function resolveTerrainFillStyle(
-  terrainKind: TerrainKind,
-  mapTheme: MapThemePalette
-) {
+export function resolveTerrainFillStyle(terrainKind: TerrainKind, mapTheme: MapThemePalette) {
   if (terrainKind === "grass") {
     return {
       color: mapTheme.background,
@@ -162,41 +159,6 @@ export function resolveTerrainFillStyle(
     color: resolveTerrainTint(terrainKind, mapTheme),
     alpha: NON_GRASS_TERRAIN_ALPHA,
   }
-}
-
-function drawEdgeSegment(
-  layer: Graphics,
-  world: BaseWorldConfig,
-  edge: { axis: "horizontal" | "vertical"; col: number; row: number },
-  color: number,
-  width: number,
-  alpha = 1
-) {
-  const startX = edge.col * world.cellSize
-  const startY = edge.row * world.cellSize
-
-  if (edge.axis === "horizontal") {
-    layer
-      .moveTo(startX, startY)
-      .lineTo(startX + world.cellSize, startY)
-      .stroke({
-        color,
-        width: scaleStrokeWidth(world, width),
-        alpha,
-        cap: "round",
-      })
-    return
-  }
-
-  layer
-    .moveTo(startX, startY)
-    .lineTo(startX, startY + world.cellSize)
-    .stroke({
-      color,
-      width: scaleStrokeWidth(world, width),
-      alpha,
-      cap: "round",
-    })
 }
 
 function drawAreaRect(params: {
@@ -359,21 +321,11 @@ export function drawLayout(
 
   for (const building of layout.buildings) {
     const color = resolveBuildingColor(building.definitionId)
-
-    if (building.footprint.kind === "edge") {
-      drawEdgeSegment(
-        structureLayer,
-        world,
-        building.footprint.edge,
-        color,
-        5.5,
-        PLACED_ENTITY_ALPHA
-      )
-      continue
-    }
+    const definition = BASE_BUILDING_DEFINITION_MAP.get(building.definitionId)
+    const layer = definition?.category === "structure" ? structureLayer : buildingLayer
 
     drawAreaRect({
-      layer: buildingLayer,
+      layer,
       world,
       origin: building.footprint.origin,
       widthSubcells: building.footprint.widthSubcells,
@@ -420,26 +372,6 @@ export function drawSelection(
     return
   }
 
-  if (building.footprint.kind === "edge") {
-    drawEdgeSegment(
-      overlayLayer,
-      world,
-      building.footprint.edge,
-      PALETTE.selection,
-      9,
-      0.4
-    )
-    drawEdgeSegment(
-      overlayLayer,
-      world,
-      building.footprint.edge,
-      PALETTE.selection,
-      3,
-      1
-    )
-    return
-  }
-
   drawAreaRect({
     layer: overlayLayer,
     world,
@@ -462,12 +394,6 @@ export function drawPreview(
   }
 
   const color = preview.valid ? PALETTE.previewValid : PALETTE.previewInvalid
-
-  if (preview.footprint.kind === "edge") {
-    drawEdgeSegment(overlayLayer, world, preview.footprint.edge, color, 6, 0.32)
-    drawEdgeSegment(overlayLayer, world, preview.footprint.edge, color, 2.5, 0.96)
-    return
-  }
 
   drawAreaRect({
     layer: overlayLayer,

@@ -13,10 +13,6 @@ function formatFootprint(
   footprint: import("@/features/base/types").PlacedBuilding["footprint"],
   subgridDivisions: number
 ) {
-  if (footprint.kind === "edge") {
-    return footprint.edge.axis === "horizontal" ? "水平边" : "垂直边"
-  }
-
   const widthCells = footprint.widthSubcells / subgridDivisions
   const heightCells = footprint.heightSubcells / subgridDivisions
 

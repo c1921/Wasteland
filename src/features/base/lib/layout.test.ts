@@ -3,11 +3,12 @@ import { beforeEach, describe, expect, it } from "vitest"
 import {
   applyAreaBrushPlacement,
   applyAreaPlacement,
-  applyStructurePlacement,
+  applyLinePlacement,
   createEmptyBaseLayout,
   getBuildingDefinitionById,
   removeBuildingsByIds,
   resetPlacedBuildingIdSequence,
+  resolveLinePlacementPath,
 } from "@/features/base/lib/layout"
 import type { BaseWorldConfig, TerrainKind } from "@/features/base/types"
 
@@ -32,30 +33,63 @@ describe("base layout placement", () => {
     resetPlacedBuildingIdSequence()
   })
 
-  it("places walls and converts them into doors on the same edge", () => {
-    const wallResult = applyStructurePlacement({
+  it("lays out wall segments along a horizontal line as area footprints", () => {
+    const result = applyLinePlacement({
       layout: createEmptyBaseLayout(),
       terrain: createTerrain(),
       world: WORLD,
       definitionId: "wall",
-      edges: [{ axis: "horizontal", col: 2, row: 2 }],
+      startOrigin: { subcol: 3, subrow: 3 },
+      endOrigin: { subcol: 9, subrow: 3 },
+      fallbackRotation: 0,
     })
 
-    expect(wallResult.changed).toBe(true)
-    expect(wallResult.nextLayout.buildings).toHaveLength(1)
-    expect(wallResult.nextLayout.buildings[0]?.definitionId).toBe("wall")
+    expect(result.changed).toBe(true)
+    expect(result.placedCount).toBe(3)
+    expect(result.nextLayout.buildings).toHaveLength(3)
+    expect(result.nextLayout.buildings.map((building) => building.rotation)).toEqual([0, 0, 0])
+    expect(result.nextLayout.buildings.map((building) => building.footprint.origin.subcol)).toEqual([3, 6, 9])
+    expect(result.nextLayout.buildings.every((building) => building.footprint.widthSubcells === 3)).toBe(true)
+    expect(result.nextLayout.buildings.every((building) => building.footprint.heightSubcells === 1)).toBe(true)
+  })
 
-    const doorResult = applyStructurePlacement({
-      layout: wallResult.nextLayout,
+  it("resolves vertical line placement from the drag dominant axis", () => {
+    const wall = getBuildingDefinitionById("wall")
+
+    expect(wall?.footprint.kind).toBe("subcell-area")
+
+    const path = wall
+      ? resolveLinePlacementPath(wall, { subcol: 3, subrow: 3 }, { subcol: 4, subrow: 10 }, 0)
+      : null
+
+    expect(path).toEqual({
+      rotation: 90,
+      origins: [
+        { subcol: 3, subrow: 3 },
+        { subcol: 3, subrow: 6 },
+        { subcol: 3, subrow: 9 },
+      ],
+    })
+  })
+
+  it("allows doors to be placed directly without an existing wall", () => {
+    const result = applyAreaPlacement({
+      layout: createEmptyBaseLayout(),
       terrain: createTerrain(),
       world: WORLD,
       definitionId: "door",
-      edges: [{ axis: "horizontal", col: 2, row: 2 }],
+      origin: { subcol: 4, subrow: 4 },
+      rotation: 0,
     })
 
-    expect(doorResult.changed).toBe(true)
-    expect(doorResult.nextLayout.buildings).toHaveLength(1)
-    expect(doorResult.nextLayout.buildings[0]?.definitionId).toBe("door")
+    expect(result.changed).toBe(true)
+    expect(result.nextLayout.buildings[0]?.definitionId).toBe("door")
+    expect(result.nextLayout.buildings[0]?.footprint).toEqual({
+      kind: "area",
+      origin: { subcol: 4, subrow: 4 },
+      widthSubcells: 3,
+      heightSubcells: 1,
+    })
   })
 
   it("blocks area placement on disallowed terrain", () => {

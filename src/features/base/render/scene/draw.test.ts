@@ -173,8 +173,10 @@ describe("base scene draw helpers", () => {
           definitionId: "wall",
           rotation: 0,
           footprint: {
-            kind: "edge",
-            edge: { axis: "horizontal", col: 0, row: 1 },
+            kind: "area",
+            origin: { subcol: 0, subrow: 1 },
+            widthSubcells: 3,
+            heightSubcells: 1,
           },
         },
         {
@@ -198,18 +200,30 @@ describe("base scene draw helpers", () => {
       layout
     )
 
+    const structureFill = structureLayer.calls.find((call) => call.method === "fill")
     const structureStroke = structureLayer.calls.find((call) => call.method === "stroke")
     const buildingFill = buildingLayer.calls.find((call) => call.method === "fill")
     const buildingStroke = buildingLayer.calls.find((call) => call.method === "stroke")
 
-    expect(structureStroke?.method).toBe("stroke")
-    expect(structureStroke?.args[0]).toMatchObject({
-      color: 0xc7b38b,
-      alpha: 0.3,
-      cap: "round",
+    expect(structureFill).toEqual({
+      method: "fill",
+      args: [
+        {
+          color: 0xc7b38b,
+          alpha: 0.3,
+        },
+      ],
     })
-    expect((structureStroke?.args[0] as { width: number }).width).toBeCloseTo((5.5 * 40) / 48)
-
+    expect(structureStroke).toEqual({
+      method: "stroke",
+      args: [
+        {
+          color: 0xc7b38b,
+          alpha: 0.3,
+          width: 1,
+        },
+      ],
+    })
     expect(buildingFill).toEqual({
       method: "fill",
       args: [
@@ -229,5 +243,7 @@ describe("base scene draw helpers", () => {
         },
       ],
     })
+    expect(structureLayer.calls.find((call) => call.method === "roundRect")?.args).toEqual([0, 20, 60, 20, 4.4])
+    expect(buildingLayer.calls.find((call) => call.method === "roundRect")?.args).toEqual([20, 20, 40, 40, 4.4])
   })
 })

@@ -100,25 +100,25 @@ export const BASE_BUILDING_DEFINITIONS: BuildingDefinition[] = [
     id: "wall",
     label: "墙体",
     category: "structure",
-    footprint: { kind: "edge" },
+    footprint: { kind: "subcell-area", widthSubcells: 3, heightSubcells: 1, dragPlacement: "line" },
     terrain: { allowed: ["grass", "sand"] },
-    rotationEnabled: false,
+    rotationEnabled: true,
   },
   {
     id: "door",
     label: "门",
     category: "structure",
-    footprint: { kind: "edge" },
+    footprint: { kind: "subcell-area", widthSubcells: 3, heightSubcells: 1, dragPlacement: "line" },
     terrain: { allowed: ["grass", "sand"] },
-    rotationEnabled: false,
+    rotationEnabled: true,
   },
   {
     id: "window",
     label: "窗",
     category: "structure",
-    footprint: { kind: "edge" },
+    footprint: { kind: "subcell-area", widthSubcells: 3, heightSubcells: 1, dragPlacement: "line" },
     terrain: { allowed: ["grass", "sand"] },
-    rotationEnabled: false,
+    rotationEnabled: true,
   },
   {
     id: "bed",
@@ -140,7 +140,7 @@ export const BASE_BUILDING_DEFINITIONS: BuildingDefinition[] = [
     id: "crate",
     label: "储物箱",
     category: "furniture",
-    footprint: { kind: "subcell-area", widthSubcells: 1, heightSubcells: 1, brushable: true },
+    footprint: { kind: "subcell-area", widthSubcells: 1, heightSubcells: 1, dragPlacement: "brush" },
     terrain: { allowed: ["grass", "sand"] },
     rotationEnabled: false,
   },
@@ -169,18 +169,6 @@ export const BASE_BUILDING_DEFINITION_MAP = new Map(
 function createPlacedBuildings() {
   const buildings: PlacedBuilding[] = []
 
-  const addEdge = (definitionId: string, axis: "horizontal" | "vertical", col: number, row: number) => {
-    buildings.push({
-      id: `seed-${definitionId}-${axis}-${col}-${row}`,
-      definitionId,
-      rotation: 0,
-      footprint: {
-        kind: "edge",
-        edge: { axis, col, row },
-      },
-    })
-  }
-
   const addArea = (
     definitionId: string,
     rotation: 0 | 90 | 180 | 270,
@@ -203,13 +191,13 @@ function createPlacedBuildings() {
   }
 
   for (let col = 18; col < 24; col += 1) {
-    addEdge("wall", "horizontal", col, 18)
-    addEdge(col === 20 ? "door" : "wall", "horizontal", col, 22)
+    addArea("wall", 0, col * 3, 18 * 3, 3, 1)
+    addArea(col === 20 ? "door" : "wall", 0, col * 3, 22 * 3 - 1, 3, 1)
   }
 
   for (let row = 18; row < 22; row += 1) {
-    addEdge("wall", "vertical", 18, row)
-    addEdge(row === 19 ? "window" : "wall", "vertical", 24, row)
+    addArea("wall", 90, 18 * 3, row * 3, 1, 3)
+    addArea(row === 19 ? "window" : "wall", 90, 24 * 3 - 1, row * 3, 1, 3)
   }
 
   addArea("bed", 0, 19 * 3, 19 * 3, 6, 3)

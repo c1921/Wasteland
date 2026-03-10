@@ -227,8 +227,10 @@ describe("useBaseController", () => {
           definitionId: "wall",
           rotation: 0,
           footprint: {
-            kind: "edge",
-            edge: { col: 1, row: 1, axis: "horizontal" },
+            kind: "area",
+            origin: { subcol: 3, subrow: 3 },
+            widthSubcells: 3,
+            heightSubcells: 1,
           },
         },
       ],

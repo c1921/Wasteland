@@ -10,16 +10,17 @@ import { BASE_CAMERA_KEYBOARD_PAN_SPEED } from "@/features/base/constants"
 import {
   applyAreaBrushPlacement,
   applyAreaPlacement,
-  applyStructurePlacement,
+  applyLinePlacement,
+  getDragPlacementMode,
   getPointerTooltip,
   pickPointerTarget,
   removeBuildingsByIds,
   resolveBrushPath,
   resolveDefinitionForTool,
   resolveDemolishIdsFromTargets,
+  resolveLinePlacementPath,
   resolvePlacementPreview,
   resolveSelectionAtPoint,
-  resolveStructureDragEdges,
 } from "@/features/base/lib/layout"
 import {
   isBaseEditorStateEqual,
@@ -55,7 +56,6 @@ import type {
   BaseLayoutState,
   BasePointerTarget,
   BaseSelection,
-  EdgeCoord,
   PlacementPreview,
   SubcellCoord,
 } from "@/features/base/types"
@@ -70,9 +70,9 @@ type ToolGestureState =
     kind: "idle"
   }
   | {
-    kind: "structure-drag"
-    startEdge: EdgeCoord
-    currentEdge: EdgeCoord
+    kind: "line-drag"
+    startOrigin: SubcellCoord
+    currentOrigin: SubcellCoord
   }
   | {
     kind: "brush-drag"
@@ -97,6 +97,20 @@ function clamp(value: number, min: number, max: number) {
 
 function isTouchLike(event: FederatedPointerEvent) {
   return event.pointerType === "touch" || event.pointerType === "pen"
+}
+
+function cloneLayout(layout: BaseLayoutState): BaseLayoutState {
+  return {
+    buildings: layout.buildings.map((building) => ({
+      ...building,
+      footprint: {
+        kind: "area" as const,
+        origin: { ...building.footprint.origin },
+        widthSubcells: building.footprint.widthSubcells,
+        heightSubcells: building.footprint.heightSubcells,
+      },
+    })),
+  }
 }
 
 export async function createPixiBaseScene({
@@ -130,47 +144,13 @@ export async function createPixiBaseScene({
   let keyupHandler: ((event: KeyboardEvent) => void) | null = null
   let stopThemeObserver: (() => void) | null = null
   let mapTheme: MapThemePalette = resolveMapThemePalette()
-  let currentLayout: BaseLayoutState = {
-    buildings: initialLayout.buildings.map((building) => ({
-      ...building,
-      footprint:
-        building.footprint.kind === "edge"
-          ? {
-            kind: "edge",
-            edge: { ...building.footprint.edge },
-          }
-          : {
-            kind: "area",
-            origin: { ...building.footprint.origin },
-            widthSubcells: building.footprint.widthSubcells,
-            heightSubcells: building.footprint.heightSubcells,
-          },
-    })),
-  }
+  let currentLayout: BaseLayoutState = cloneLayout(initialLayout)
   let currentEditorState: BaseEditorState = { ...initialEditorState }
   let currentSelection: BaseSelection | null = null
   let currentPreview: PlacementPreview = null
   let gestureState: ToolGestureState = { kind: "idle" }
   let pinchDistance: number | null = null
   let pinchCenter: { x: number; y: number } | null = null
-
-  const cloneLayout = (layout: BaseLayoutState): BaseLayoutState => ({
-    buildings: layout.buildings.map((building) => ({
-      ...building,
-      footprint:
-        building.footprint.kind === "edge"
-          ? {
-            kind: "edge" as const,
-            edge: { ...building.footprint.edge },
-          }
-          : {
-            kind: "area" as const,
-            origin: { ...building.footprint.origin },
-            widthSubcells: building.footprint.widthSubcells,
-            heightSubcells: building.footprint.heightSubcells,
-          },
-    })),
-  })
 
   const setTooltip = (target: BasePointerTarget | null, screenX: number, screenY: number) => {
     if (!target) {
@@ -267,19 +247,40 @@ export async function createPixiBaseScene({
     return toWorldPoint(camera, event.global.x, event.global.y)
   }
 
-  const updatePreviewForPointer = (event: FederatedPointerEvent) => {
-    const worldPoint = resolveWorldPoint(event)
+  const getWorldPointForOrigin = (origin: SubcellCoord) => {
+    const subcellSize = world.cellSize / world.subgridDivisions
+
+    return {
+      x: (origin.subcol + 0.5) * subcellSize,
+      y: (origin.subrow + 0.5) * subcellSize,
+    }
+  }
+
+  const updatePreviewForWorldPoint = (
+    worldPoint: { x: number; y: number },
+    screenPoint: { x: number; y: number },
+    editorState = currentEditorState
+  ) => {
     const target = pickPointerTarget(currentLayout, world, worldPoint)
     const preview = resolvePlacementPreview({
       layout: currentLayout,
       terrain,
       world,
-      editorState: currentEditorState,
+      editorState,
       point: worldPoint,
     })
 
-    setTooltip(target, event.global.x, event.global.y)
+    setTooltip(target, screenPoint.x, screenPoint.y)
     setPreview(preview)
+    return preview
+  }
+
+  const updatePreviewForPointer = (event: FederatedPointerEvent) => {
+    const worldPoint = resolveWorldPoint(event)
+    return updatePreviewForWorldPoint(
+      worldPoint,
+      { x: event.global.x, y: event.global.y }
+    )
   }
 
   const commitMutation = (mutation: {
@@ -298,7 +299,7 @@ export async function createPixiBaseScene({
     setSelection(mutation.selection)
   }
 
-  const handleStructureCommit = (edges: EdgeCoord[]) => {
+  const handleLineCommit = (startOrigin: SubcellCoord, endOrigin: SubcellCoord) => {
     const definition = resolveDefinitionForTool(
       currentEditorState.tool,
       currentEditorState.activeDefinitionId
@@ -310,12 +311,14 @@ export async function createPixiBaseScene({
     }
 
     commitMutation(
-      applyStructurePlacement({
+      applyLinePlacement({
         layout: currentLayout,
         terrain,
         world,
         definitionId: definition.id,
-        edges,
+        startOrigin,
+        endOrigin,
+        fallbackRotation: currentEditorState.rotation,
       })
     )
   }
@@ -430,23 +433,19 @@ export async function createPixiBaseScene({
       return
     }
 
-    if (preview?.footprint?.kind === "edge") {
-      gestureState = {
-        kind: "structure-drag",
-        startEdge: preview.footprint.edge,
-        currentEdge: preview.footprint.edge,
-      }
-      setPreview(preview)
-      return
-    }
-
     if (preview?.footprint?.kind === "area") {
       const definition = resolveDefinitionForTool(
         currentEditorState.tool,
         currentEditorState.activeDefinitionId
       )
 
-      if (definition?.footprint.kind === "subcell-area" && definition.footprint.brushable) {
+      if (definition && getDragPlacementMode(definition) === "line") {
+        gestureState = {
+          kind: "line-drag",
+          startOrigin: preview.footprint.origin,
+          currentOrigin: preview.footprint.origin,
+        }
+      } else if (definition && getDragPlacementMode(definition) === "brush") {
         gestureState = {
           kind: "brush-drag",
           startOrigin: preview.footprint.origin,
@@ -500,37 +499,56 @@ export async function createPixiBaseScene({
       return
     }
 
-    updatePreviewForPointer(event)
-
     const worldPoint = resolveWorldPoint(event)
 
-    if (gestureState.kind === "structure-drag") {
-      const preview = resolvePlacementPreview({
-        layout: currentLayout,
-        terrain,
-        world,
-        editorState: currentEditorState,
-        point: worldPoint,
-      })
+    if (gestureState.kind === "line-drag") {
+      const definition = resolveDefinitionForTool(
+        currentEditorState.tool,
+        currentEditorState.activeDefinitionId
+      )
 
-      if (preview?.footprint?.kind === "edge") {
-        gestureState = {
-          ...gestureState,
-          currentEdge: preview.footprint.edge,
+      if (definition) {
+        const previewAtPointer = resolvePlacementPreview({
+          layout: currentLayout,
+          terrain,
+          world,
+          editorState: currentEditorState,
+          point: worldPoint,
+        })
+        const nextOrigin =
+          previewAtPointer?.footprint?.kind === "area"
+            ? previewAtPointer.footprint.origin
+            : gestureState.currentOrigin
+        const linePath = resolveLinePlacementPath(
+          definition,
+          gestureState.startOrigin,
+          nextOrigin,
+          currentEditorState.rotation
+        )
+
+        if (linePath) {
+          const snappedOrigin = linePath.origins.at(-1) ?? gestureState.startOrigin
+          gestureState = {
+            ...gestureState,
+            currentOrigin: snappedOrigin,
+          }
+          updatePreviewForWorldPoint(
+            getWorldPointForOrigin(snappedOrigin),
+            { x: event.global.x, y: event.global.y },
+            {
+              ...currentEditorState,
+              rotation: linePath.rotation,
+            }
+          )
+          return
         }
       }
-
+      updatePreviewForPointer(event)
       return
     }
 
     if (gestureState.kind === "brush-drag") {
-      const preview = resolvePlacementPreview({
-        layout: currentLayout,
-        terrain,
-        world,
-        editorState: currentEditorState,
-        point: worldPoint,
-      })
+      const preview = updatePreviewForPointer(event)
 
       if (preview?.footprint?.kind === "area") {
         gestureState = {
@@ -541,6 +559,8 @@ export async function createPixiBaseScene({
 
       return
     }
+
+    updatePreviewForPointer(event)
 
     if (gestureState.kind === "demolish-drag") {
       const target = pickPointerTarget(currentLayout, world, worldPoint)
@@ -573,11 +593,8 @@ export async function createPixiBaseScene({
       return
     }
 
-    if (gestureState.kind === "structure-drag") {
-      const edges =
-        resolveStructureDragEdges(gestureState.startEdge, gestureState.currentEdge) ??
-        [gestureState.startEdge]
-      handleStructureCommit(edges)
+    if (gestureState.kind === "line-drag") {
+      handleLineCommit(gestureState.startOrigin, gestureState.currentOrigin)
       gestureState = { kind: "idle" }
       return
     }

@@ -3,19 +3,10 @@ import type {
   BaseLayoutState,
   BasePointerTarget,
   BaseSelection,
-  EdgeCoord,
   PlacementPreview,
   ResolvedBuildingFootprint,
   SubcellCoord,
 } from "@/features/base/types"
-
-function isEdgeCoordEqual(left: EdgeCoord, right: EdgeCoord) {
-  return (
-    left.col === right.col &&
-    left.row === right.row &&
-    left.axis === right.axis
-  )
-}
 
 function isSubcellCoordEqual(left: SubcellCoord, right: SubcellCoord) {
   return left.subcol === right.subcol && left.subrow === right.subrow
@@ -44,13 +35,6 @@ function isPointerTargetEqual(
     return left.buildingId === right.buildingId
   }
 
-  if (left.type === "edge" && right.type === "edge") {
-    return (
-      left.buildingId === right.buildingId &&
-      isEdgeCoordEqual(left.edge, right.edge)
-    )
-  }
-
   return false
 }
 
@@ -64,10 +48,6 @@ function isFootprintEqual(
 
   if (!left || !right || left.kind !== right.kind) {
     return false
-  }
-
-  if (left.kind === "edge" && right.kind === "edge") {
-    return isEdgeCoordEqual(left.edge, right.edge)
   }
 
   if (left.kind === "area" && right.kind === "area") {

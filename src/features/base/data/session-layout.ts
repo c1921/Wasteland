@@ -11,13 +11,6 @@ import type {
 const SESSION_BASE_LAYOUT_KEY = "base.layout"
 
 function cloneFootprint(footprint: ResolvedBuildingFootprint): ResolvedBuildingFootprint {
-  if (footprint.kind === "edge") {
-    return {
-      kind: "edge",
-      edge: { ...footprint.edge },
-    }
-  }
-
   return {
     kind: "area",
     origin: { ...footprint.origin },

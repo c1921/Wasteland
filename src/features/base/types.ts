@@ -17,11 +17,7 @@ export type SubcellCoord = {
   subrow: number
 }
 
-export type EdgeCoord = {
-  col: number
-  row: number
-  axis: "horizontal" | "vertical"
-}
+export type DragPlacementMode = "brush" | "line"
 
 export type BaseWorldConfig = {
   cols: number
@@ -39,13 +35,10 @@ export type BuildingCategory = "structure" | "furniture" | "equipment"
 
 export type BuildingFootprintDefinition =
   | {
-    kind: "edge"
-  }
-  | {
     kind: "subcell-area"
     widthSubcells: number
     heightSubcells: number
-    brushable?: boolean
+    dragPlacement?: DragPlacementMode
   }
   | {
     kind: "cell-area"
@@ -64,17 +57,12 @@ export type BuildingDefinition = {
   rotationEnabled: boolean
 }
 
-export type ResolvedBuildingFootprint =
-  | {
-    kind: "edge"
-    edge: EdgeCoord
-  }
-  | {
-    kind: "area"
-    origin: SubcellCoord
-    widthSubcells: number
-    heightSubcells: number
-  }
+export type ResolvedBuildingFootprint = {
+  kind: "area"
+  origin: SubcellCoord
+  widthSubcells: number
+  heightSubcells: number
+}
 
 export type PlacedBuilding = {
   id: string
@@ -114,11 +102,6 @@ export type BasePointerTarget =
   | {
     type: "building"
     buildingId: string
-  }
-  | {
-    type: "edge"
-    edge: EdgeCoord
-    buildingId: string | null
   }
 
 export type PlacementPreview =
